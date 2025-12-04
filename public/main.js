@@ -397,7 +397,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch(`${endpoint}?${params.toString()}`);
-      const data = await res.json();
+      const raw = await res.text();
+
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (parseErr) {
+        console.error("Risposta catalogo non valida:", raw, parseErr);
+        alert("Catalogo non disponibile: risposta non valida dal server.");
+        return;
+      }
+
+      if (!res.ok) {
+        const serverMsg =
+          typeof data?.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : `Catalogo non disponibile (codice ${res.status}).`;
+        alert(serverMsg);
+        return;
+      }
+
       const items = data.items || [];
 
       if (!items.length) {
