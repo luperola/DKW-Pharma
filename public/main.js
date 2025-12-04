@@ -59,9 +59,98 @@ document.addEventListener("DOMContentLoaded", () => {
   const richiestaInputModal = qs("richiestaInputModal");
   const clienteInputModal = qs("clienteInputModal");
   const cantiereInputModal = qs("cantiereInputModal");
-  const discountPercentModal = qs("discountPercentModal");
-  const transportPercentModal = qs("transportPercentModal");
+  const discountSuggestedRadio = qs("discountSuggestedRadio");
+  const discountSuggestedValue = qs("discountSuggestedValue");
+  const discountNoneRadio = qs("discountNoneRadio");
+  const discountOtherRadio = qs("discountOtherRadio");
+  const discountCustomInput = qs("discountCustomInput");
+  const transportSelectModal = qs("transportSelectModal");
+  const fileNameInput = qs("fileNameInput");
   const confirmExportBtn = qs("confirmExportBtn");
+
+  function getDefaultFileName() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `Offerta_${yyyy}-${mm}-${dd}`;
+  }
+
+  function roundToDecimals(value, decimals) {
+    return (
+      Math.round((Number(value || 0) + Number.EPSILON) * 10 ** decimals) /
+      10 ** decimals
+    );
+  }
+
+  function computeRowUnitPrice(row) {
+    const base =
+      row.itemType === "Tubes"
+        ? Number(row.basePricePerM || 0)
+        : Number(row.basePricePerPc || 0);
+
+    if (row.itemType !== "Tubes") return base;
+
+    const peso = roundToDecimals(row.pesoKgM || 0, 3);
+    const asKg = Number(row.alloySurchargePerKg || 0);
+    return base + peso * asKg;
+  }
+
+  function computeOfferTotal(rows) {
+    let tot = 0;
+    for (const row of rows) {
+      const unit = computeRowUnitPrice(row);
+      const qty = Number(row.quantity || 0);
+      tot += unit * qty;
+    }
+    return roundToDecimals(tot, 2);
+  }
+
+  function getSuggestedDiscount(totalValue) {
+    if (totalValue < 20000) return 35.83;
+    if (totalValue < 50000) return 41.18;
+    if (totalValue < 100000) return 46.52;
+    return 51.87;
+  }
+
+  function updateDiscountUI() {
+    const totalValue = computeOfferTotal(currentRows);
+    const suggested = getSuggestedDiscount(totalValue);
+    discountSuggestedValue.textContent = `${suggested.toFixed(2)}%`;
+    discountSuggestedRadio.value = suggested.toString();
+
+    if (!fileNameInput.value) fileNameInput.value = getDefaultFileName();
+    discountSuggestedRadio.checked = true;
+    discountNoneRadio.checked = false;
+    discountOtherRadio.checked = false;
+    discountCustomInput.value = "";
+    discountCustomInput.disabled = true;
+    transportSelectModal.value = "4";
+  }
+
+  function getSelectedDiscount() {
+    if (discountSuggestedRadio.checked)
+      return parseFloat(discountSuggestedRadio.value) || 0;
+    if (discountNoneRadio.checked) return 0;
+    if (discountOtherRadio.checked) {
+      const custom = parseFloat(discountCustomInput.value || "0");
+      if (isNaN(custom) || custom < 0 || custom > 100) {
+        alert("Inserisci uno sconto valido tra 0 e 100.");
+        return null;
+      }
+      return custom;
+    }
+    return 0;
+  }
+
+  function handleDiscountOptionChange() {
+    discountCustomInput.disabled = !discountOtherRadio.checked;
+    if (!discountOtherRadio.checked) discountCustomInput.value = "";
+  }
+
+  discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
+  discountNoneRadio.addEventListener("change", handleDiscountOptionChange);
+  discountOtherRadio.addEventListener("change", handleDiscountOptionChange);
 
   // Carica finiture dal backend (ASME BPE SF1 / SF4)
   fetch("/api/catalog/finishes")
@@ -359,6 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Non ci sono righe da esportare.");
       return;
     }
+    updateDiscountUI();
     exportModal.show();
   });
 
@@ -369,16 +459,19 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const discountPercent = parseFloat(discountPercentModal.value ?? "0") || 0;
-    const transportPercent =
-      parseFloat(transportPercentModal.value ?? "0") || 0;
+    const discountPercent = getSelectedDiscount();
+    if (discountPercent === null) return;
+
+    const transportPercent = parseFloat(transportSelectModal.value ?? "0") || 0;
 
     const meta = {
       richiesta: richiestaInputModal.value || "",
       cliente: clienteInputModal.value || "",
       cantiere: cantiereInputModal.value || "",
     };
-
+    const fileNameSafe =
+      (fileNameInput.value || getDefaultFileName()).trim() ||
+      getDefaultFileName();
     try {
       const res = await fetch("/api/export", {
         method: "POST",
@@ -397,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Offerta_DKW_Pharma.xlsx";
+      a.download = `${fileNameSafe}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();

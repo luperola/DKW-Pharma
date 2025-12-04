@@ -197,7 +197,7 @@
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Dati offerta e condizioni</h5>
+            <h5 class="modal-title">Dati sconto e condizioni</h5>
             <button
               type="button"
               class="btn-close"
@@ -241,34 +241,81 @@
 
             <hr />
 
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label for="discountPercentModal" class="form-label"
-                  >Sconto (%)</label
-                >
+            <div class="mb-3">
+              <label class="form-label fw-semibold"
+                >Seleziona lo sconto da applicare all'offerta:</label
+              >
+              <div class="form-check mb-2">
                 <input
-                  type="number"
-                  id="discountPercentModal"
-                  class="form-control"
-                  min="0"
-                  max="100"
-                  step="0.01"
+                  class="form-check-input"
+                  type="radio"
+                  name="discountOption"
+                  id="discountSuggestedRadio"
+                  value="suggested"
+                  checked
+                />
+                <label class="form-check-label" for="discountSuggestedRadio">
+                  Suggerito: <span id="discountSuggestedValue">35.83%</span>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="discountOption"
+                  id="discountNoneRadio"
                   value="0"
                 />
+                <label class="form-check-label" for="discountNoneRadio">
+                  Nessuno (0%)
+                </label>
               </div>
-              <div class="col-md-4">
-                <label for="transportPercentModal" class="form-label"
-                  >Imballo + Trasporto (%)</label
-                >
+              <div class="form-check d-flex align-items-center gap-2">
                 <input
-                  type="number"
-                  id="transportPercentModal"
-                  class="form-control"
-                  min="0"
-                  step="0.01"
-                  value="0"
+                  class="form-check-input"
+                  type="radio"
+                  name="discountOption"
+                  id="discountOtherRadio"
+                  value="other"
                 />
+                <label class="form-check-label" for="discountOtherRadio">
+                  Altro:
+                </label>
+                <div class="input-group w-auto">
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="discountCustomInput"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="es. 37.50"
+                    disabled
+                  />
+                  <span class="input-group-text">%</span>
+                </div>
               </div>
+              <div class="small-hint mt-1">
+                Inserisci la percentuale desiderata (0–100).
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="transportSelectModal" class="form-label fw-semibold"
+                >Trasporto + imballaggio</label
+              >
+              <select id="transportSelectModal" class="form-select">
+                <option value="4">Nord Italia (+4%)</option>
+                <option value="0">Nessuno (0%)</option>
+              </select>
+            </div>
+
+            <div class="mb-1">
+              <label for="fileNameInput" class="form-label fw-semibold"
+                >Nome file (senza estensione)</label
+              >
+              <input type="text" id="fileNameInput" class="form-control" />
+              <div class="small-hint">.xlsx verrà aggiunto automaticamente</div>
             </div>
           </div>
           <div class="modal-footer">

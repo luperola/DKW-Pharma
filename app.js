@@ -144,9 +144,13 @@ app.post("/api/export", async (req, res) => {
       const base = Number(
         (isTube ? item.basePricePerM : item.basePricePerPc) || 0
       );
-      const peso = isTube ? Number(item.pesoKgM || 0) : null;
+      const peso = isTube
+        ? Math.round((Number(item.pesoKgM || 0) + Number.EPSILON) * 1000) / 1000
+        : null;
       const asKg = isTube ? Number(item.alloySurchargePerKg || 0) : null;
-      const asM = isTube ? Number((asKg || 0) * (peso || 0)) : null;
+      const asM = isTube
+        ? Math.round(((asKg || 0) * (peso || 0) + Number.EPSILON) * 100) / 100
+        : null;
       const pu = isTube ? base + (asM || 0) : base;
       const tot = pu * qty;
 
@@ -173,10 +177,14 @@ app.post("/api/export", async (req, res) => {
         // F..K
         const cell = ws.getCell(i, j);
         if (typeof cell.value === "number") {
-          cell.value = Math.round((cell.value + Number.EPSILON) * 100) / 100;
+          const decimals = j === 7 ? 3 : 2;
+          cell.value =
+            Math.round((cell.value + Number.EPSILON) * 10 ** decimals) /
+            10 ** decimals;
           // € su F, J, K
-          cell.numFmt =
-            j === 6 || j === 10 || j === 11 ? "€ #,##0.00" : "#,##0.00";
+          if (j === 6 || j === 10 || j === 11) cell.numFmt = "€ #,##0.00";
+          else if (j === 7) cell.numFmt = "#,##0.000";
+          else cell.numFmt = "#,##0.00";
           cell.alignment = { horizontal: "right" };
         } else if (cell.value === "-") {
           cell.alignment = { horizontal: "center" };
