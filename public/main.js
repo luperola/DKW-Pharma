@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     discountOtherRadio.checked = false;
     discountCustomInput.value = "";
     discountCustomInput.disabled = true;
-    transportSelectModal.value = "4";
+    transportSelectModal.value = "nord|4";
   }
 
   function getSelectedDiscount() {
@@ -150,6 +150,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleDiscountOptionChange() {
     discountCustomInput.disabled = !discountOtherRadio.checked;
     if (!discountOtherRadio.checked) discountCustomInput.value = "";
+  }
+
+  function getSelectedTransportPercent() {
+    const raw = transportSelectModal.value || "";
+    const parts = raw.split("|");
+    const percent = parts.length > 1 ? parts[1] : parts[0];
+    const parsed = parseFloat(percent);
+    return isNaN(parsed) ? 0 : parsed;
   }
 
   discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
@@ -519,7 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const discountPercent = getSelectedDiscount();
     if (discountPercent === null) return;
 
-    const transportPercent = parseFloat(transportSelectModal.value ?? "0") || 0;
+    const transportPercent = getSelectedTransportPercent();
 
     const fileNameSafe =
       (fileNameInput.value || getDefaultFileName()).trim() ||
