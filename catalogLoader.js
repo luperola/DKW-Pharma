@@ -124,7 +124,9 @@ function loadTubesCatalog() {
       const codeRaw = pick(r, finish.tubeCodeKeys);
       const code = codeRaw != null ? String(codeRaw).trim() : "";
 
-      const pesoKgM = parseNum(pick(r, ["Peso Kg/m", "Weight kg/m", "Kg/m"]));
+      const pesoKgM = parseNum(
+        pick(r, ["Peso Kg/m", "Peso kg/m", "Weight kg/m", "Kg/m"])
+      );
 
       out.push({
         itemType: "Tubes",
@@ -146,11 +148,25 @@ function loadTubesCatalog() {
 const SIMPLE_SHEETS = [
   {
     itemType: "Elbows 90°",
-    sheetNames: ["Elbows 90°", "Elbows 90", "90° Elbows"],
+    sheetNames: [
+      "Elbows 90°",
+      "Elbows 90",
+      "90° Elbows",
+      "Elbow 90°",
+      "Elbow 90",
+      "90° Elbow",
+    ],
   },
   {
     itemType: "Elbows 45°",
-    sheetNames: ["Elbows 45°", "Elbows 45", "45° Elbows"],
+    sheetNames: [
+      "Elbows 45°",
+      "Elbows 45",
+      "45° Elbows",
+      "Elbow 45°",
+      "Elbow 45",
+      "45° Elbow",
+    ],
   },
   {
     itemType: "End Caps",

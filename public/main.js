@@ -82,9 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const itemType = itemTypeSelect.value;
 
     // reset selezioni
-    ndSelect.innerHTML = '<option value="">-- ND --</option>';
-    od1Select.innerHTML = '<option value="">-- OD1 --</option>';
-    od2Select.innerHTML = '<option value="">-- OD2 --</option>';
+    ndSelect.innerHTML = '<option value="">Seleziona</option>';
+    od1Select.innerHTML = '<option value="">Seleziona</option>';
+    od2Select.innerHTML = '<option value="">Seleziona</option>';
     currentComplexMap = {};
 
     if (!finish || !itemType) {
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Popola OD2 quando scelgo OD1
   od1Select.addEventListener("change", () => {
     const od1 = od1Select.value;
-    od2Select.innerHTML = '<option value="">-- OD2 --</option>';
+    od2Select.innerHTML = '<option value="">Seleziona</option>';
     od2Select.disabled = true;
     if (!od1 || !currentComplexMap[od1]) return;
     const od2Vals = Array.from(currentComplexMap[od1]).sort((a, b) => {
