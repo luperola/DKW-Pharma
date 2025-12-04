@@ -6,7 +6,7 @@ import fs from "fs";
 // cartella dati
 const dataDir = path.join(process.cwd(), "data");
 const asmePath = path.join(dataDir, "ASME_BPE.xlsx");
-const teesReducersPath = path.join(dataDir, "Tees_Reducers_ASME_BPE.xlsx");
+const teesReducersPath = path.join(dataDir, "Tees and reducers.xlsx");
 
 // ---------- utils comuni ----------
 
@@ -28,7 +28,7 @@ function parseNum(v) {
 
 function sheetJSON(wb, name) {
   return wb.Sheets[name]
-    ? xlsx.utils.sheet_to_json(wb.Sheets[name], { defval: null })
+    ? xlsx.utils.sheet_to_json(wb.Sheets[name], { defval: null, range: 1 })
     : [];
 }
 
@@ -39,17 +39,60 @@ function pick(row, keys) {
   return null;
 }
 
+function formatNumber(num) {
+  const n = parseNum(num);
+  if (!n) return (num ?? "").toString().trim();
+  if (Number.isInteger(n)) return String(n);
+  return String(Number.parseFloat(n.toFixed(3))).replace(/\.0+$/, "");
+}
+
+function formatDimension(mm, inch) {
+  const mmStr = formatNumber(mm);
+  const inchStr = (inch ?? "").toString().trim();
+
+  if (!mmStr && !inchStr) return "";
+  if (mmStr && inchStr) return `${mmStr} mm (${inchStr})`;
+  if (mmStr) return `${mmStr} mm`;
+  return inchStr;
+}
+
 // Finiture disponibili
 export const FINISHES = [
   {
     key: "ASME BPE SF1",
-    tubePriceKeys: ["SF1 €/m", "SF1 €/mt", "SF1 €/m ", "SF1 €/MT"],
-    fittingPriceKeys: ["SF1 €/pc", "SF1 €/pz", "SF1 €/piece"],
+    tubePriceKeys: [
+      "SF1 €/m",
+      "SF1 €/mt",
+      "SF1 €/m ",
+      "SF1 €/MT",
+      " ASME BPE SF1 (BF) Price in € / m",
+    ],
+    tubeCodeKeys: ["Code", "Item Code", "Codice", " ASME BPE SF1 (BF) Code"],
+    fittingPriceKeys: [
+      "SF1 €/pc",
+      "SF1 €/pz",
+      "SF1 €/piece",
+      " ASME BPE SF1 (BF) Price in € / m",
+    ],
+    fittingCodeKeys: ["Code", "Item Code", "Codice", " ASME BPE SF1 (BF) Code"],
   },
   {
     key: "ASME BPE SF4",
-    tubePriceKeys: ["SF4 €/m", "SF4 €/mt", "SF4 €/m ", "SF4 €/MT"],
-    fittingPriceKeys: ["SF4 €/pc", "SF4 €/pz", "SF4 €/piece"],
+    tubePriceKeys: [
+      "SF4 €/m",
+      "SF4 €/mt",
+      "SF4 €/m ",
+      "SF4 €/MT",
+      " ASME BPE SF4 (BF) Price in € / m",
+    ],
+    tubeCodeKeys: ["Code", "Item Code", "Codice", " ASME BPE SF4 (BF) Code"],
+    fittingPriceKeys: [
+      "SF4 €/pc",
+      "SF4 €/pz",
+      "SF4 €/piece",
+      " ASME BPE SF4 (BF) Price in € / m",
+    ],
+    fittingCodeKeys: ["Code", "Item Code", "Codice", " ASME BPE SF4 (BF) Code"],
   },
 ];
 
@@ -69,19 +112,19 @@ function loadTubesCatalog() {
   const out = [];
 
   for (const r of rows) {
-    const NDraw = pick(r, ["ND", "DN", "Nominal Diameter"]);
-    if (!NDraw) continue;
-    const ND = String(NDraw).trim();
+    const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
+    const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+    const ND = formatDimension(mmRaw, inchRaw);
     if (!ND) continue;
-
-    const codeRaw = pick(r, ["Code", "Item Code", "Codice"]);
-    const code = codeRaw != null ? String(codeRaw).trim() : "";
-
-    const pesoKgM = parseNum(pick(r, ["Peso Kg/m", "Weight kg/m", "Kg/m"]));
 
     for (const finish of FINISHES) {
       const price = parseNum(pick(r, finish.tubePriceKeys));
       if (price <= 0) continue;
+
+      const codeRaw = pick(r, finish.tubeCodeKeys);
+      const code = codeRaw != null ? String(codeRaw).trim() : "";
+
+      const pesoKgM = parseNum(pick(r, ["Peso Kg/m", "Weight kg/m", "Kg/m"]));
 
       out.push({
         itemType: "Tubes",
@@ -145,17 +188,17 @@ function loadSimpleFittingsCatalog() {
     const rows = sheetJSON(wb, sheetName);
 
     for (const r of rows) {
-      const NDraw = pick(r, ["ND", "DN", "Nominal Diameter"]);
-      if (!NDraw) continue;
-      const ND = String(NDraw).trim();
+      const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
+      const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+      const ND = formatDimension(mmRaw, inchRaw);
       if (!ND) continue;
-
-      const codeRaw = pick(r, ["Code", "Item Code", "Codice"]);
-      const code = codeRaw != null ? String(codeRaw).trim() : "";
 
       for (const finish of FINISHES) {
         const price = parseNum(pick(r, finish.fittingPriceKeys));
         if (price <= 0) continue;
+
+        const codeRaw = pick(r, finish.fittingCodeKeys);
+        const code = codeRaw != null ? String(codeRaw).trim() : "";
 
         out.push({
           itemType: def.itemType,
@@ -205,29 +248,32 @@ function loadComplexCatalog() {
     const rows = sheetJSON(wb, sheetName);
 
     for (const r of rows) {
-      const OD1raw = pick(r, ["OD1", "OD min", "OD smaller", "DN1"]);
-      const OD2raw = pick(r, ["OD2", "OD max", "OD bigger", "DN2"]);
-      if (OD1raw == null || OD2raw == null) continue;
+      const inchOD1raw = pick(r, ["Inch OD1", "OD1 inch", "Inch od1"]);
+      const mmOD1raw = pick(r, ["mm OD1", "OD1 mm", "mm od1"]);
+      const inchOD2raw = pick(r, ["Inch OD2", "OD2 inch", "Inch od2"]);
+      const mmOD2raw = pick(r, ["mm OD2", "OD2 mm", "mm od2"]);
+      if (mmOD1raw == null || mmOD2raw == null) continue;
 
-      let OD1 = String(OD1raw).trim();
-      let OD2 = String(OD2raw).trim();
-      if (!OD1 || !OD2) continue;
+      let mm1 = parseNum(mmOD1raw);
+      let mm2 = parseNum(mmOD2raw);
+      let inch1 = inchOD1raw;
+      let inch2 = inchOD2raw;
 
-      // assicuro OD1 = diametro minore e OD2 = maggiore (se numerici)
-      const n1 = parseNum(OD1);
-      const n2 = parseNum(OD2);
-      if (n1 && n2 && n1 > n2) {
-        const tmp = OD1;
-        OD1 = OD2;
-        OD2 = tmp;
+      if (mm1 && mm2 && mm1 > mm2) {
+        [mm1, mm2] = [mm2, mm1];
+        [inch1, inch2] = [inch2, inch1];
       }
 
-      const codeRaw = pick(r, ["Code", "Item Code", "Codice"]);
-      const code = codeRaw != null ? String(codeRaw).trim() : "";
+      const OD1 = formatDimension(mm1 || mmOD1raw, inch1);
+      const OD2 = formatDimension(mm2 || mmOD2raw, inch2);
+      if (!OD1 || !OD2) continue;
 
       for (const finish of FINISHES) {
         const price = parseNum(pick(r, finish.fittingPriceKeys));
         if (price <= 0) continue;
+
+        const codeRaw = pick(r, finish.fittingCodeKeys);
+        const code = codeRaw != null ? String(codeRaw).trim() : "";
 
         out.push({
           itemType: def.itemType,

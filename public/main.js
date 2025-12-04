@@ -21,6 +21,13 @@ function qs(id) {
   return document.getElementById(id);
 }
 
+function sortByNumericString(a, b) {
+  const na = parseFloat(String(a).replace(",", "."));
+  const nb = parseFloat(String(b).replace(",", "."));
+  if (!isNaN(na) && !isNaN(nb)) return na - nb;
+  return String(a).localeCompare(String(b));
+}
+
 // cache temporanea per OD1 -> OD2
 let currentComplexMap = {}; // { OD1: Set(OD2, ...) }
 
@@ -99,7 +106,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
-        for (const nd of Array.from(ndSet).filter(Boolean)) {
+        for (const nd of Array.from(ndSet)
+          .filter(Boolean)
+          .sort(sortByNumericString)) {
           const opt = document.createElement("option");
           opt.value = nd;
           opt.textContent = nd;
@@ -119,7 +128,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
-        for (const nd of Array.from(ndSet).filter(Boolean)) {
+        for (const nd of Array.from(ndSet)
+          .filter(Boolean)
+          .sort(sortByNumericString)) {
           const opt = document.createElement("option");
           opt.value = nd;
           opt.textContent = nd;
@@ -163,6 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ndGroup.classList.add("d-none");
         od1Group.classList.remove("d-none");
         od2Group.classList.remove("d-none");
+        od2Select.disabled = true;
       } else {
         // fallback
         ndGroup.classList.remove("d-none");
@@ -179,6 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   od1Select.addEventListener("change", () => {
     const od1 = od1Select.value;
     od2Select.innerHTML = '<option value="">-- OD2 --</option>';
+    od2Select.disabled = true;
     if (!od1 || !currentComplexMap[od1]) return;
     const od2Vals = Array.from(currentComplexMap[od1]).sort((a, b) => {
       const na = parseFloat(a.replace(",", "."));
@@ -191,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       opt.value = v;
       opt.textContent = v;
       od2Select.appendChild(opt);
+      od2Select.disabled = false;
     }
   });
 
