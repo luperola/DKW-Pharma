@@ -15,7 +15,29 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-let catalog = loadCatalog();
+function safeLoadCatalog() {
+  try {
+    const loaded = loadCatalog();
+    const counts = {
+      tubes: loaded.tubes?.length || 0,
+      simple: loaded.simple?.length || 0,
+      complex: loaded.complex?.length || 0,
+    };
+    //console.log("Catalogo caricato:", counts);
+    return loaded;
+  } catch (err) {
+    console.error("Errore nel caricamento del catalogo:", err);
+    return { tubes: [], simple: [], complex: [] };
+  }
+}
+
+function ensureCatalog() {
+  if (!catalog || !catalog.tubes || !catalog.simple || !catalog.complex) {
+    catalog = safeLoadCatalog();
+  }
+}
+
+let catalog = safeLoadCatalog();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ========== ENDPOINT CATALOGO DKW PHARMA ==========
@@ -27,38 +49,56 @@ app.get("/api/catalog/finishes", (req, res) => {
 
 // Tubes (solo ND, finish obbligatoria per filtrare bene)
 app.get("/api/catalog/tubes", (req, res) => {
-  const { finish, ND } = req.query;
-  let items = (catalog.tubes || []).slice();
+  try {
+    ensureCatalog();
+    const { finish, ND } = req.query;
+    let items = (catalog.tubes || []).slice();
 
-  if (finish) items = items.filter((r) => r.finish === finish);
-  if (ND) items = items.filter((r) => String(r.ND) === String(ND));
+    if (finish) items = items.filter((r) => r.finish === finish);
+    if (ND) items = items.filter((r) => String(r.ND) === String(ND));
 
-  res.json({ items });
+    res.json({ items });
+  } catch (err) {
+    console.error("Errore API tubes:", err);
+    res.status(500).json({ error: "Catalogo non disponibile" });
+  }
 });
 
 // Fittings semplici (Elbows 90°, Elbows 45°, End Caps, Ferrule A/B/C) – ND
 app.get("/api/catalog/simple", (req, res) => {
-  const { type, finish, ND } = req.query;
-  let items = (catalog.simple || []).slice();
+  try {
+    ensureCatalog();
+    const { type, finish, ND } = req.query;
+    let items = (catalog.simple || []).slice();
 
-  if (type) items = items.filter((r) => r.itemType === type);
-  if (finish) items = items.filter((r) => r.finish === finish);
-  if (ND) items = items.filter((r) => String(r.ND) === String(ND));
+    if (type) items = items.filter((r) => r.itemType === type);
+    if (finish) items = items.filter((r) => r.finish === finish);
+    if (ND) items = items.filter((r) => String(r.ND) === String(ND));
 
-  res.json({ items });
+    res.json({ items });
+  } catch (err) {
+    console.error("Errore API fittings ND:", err);
+    res.status(500).json({ error: "Catalogo non disponibile" });
+  }
 });
 
 // Fittings complessi (Tees, Conc. Reducers, Ecc. Reducers) – OD1/OD2
 app.get("/api/catalog/complex", (req, res) => {
-  const { type, finish, OD1, OD2 } = req.query;
-  let items = (catalog.complex || []).slice();
+  try {
+    ensureCatalog();
+    const { type, finish, OD1, OD2 } = req.query;
+    let items = (catalog.complex || []).slice();
 
-  if (type) items = items.filter((r) => r.itemType === type);
-  if (finish) items = items.filter((r) => r.finish === finish);
-  if (OD1) items = items.filter((r) => String(r.OD1) === String(OD1));
-  if (OD2) items = items.filter((r) => String(r.OD2) === String(OD2));
+    if (type) items = items.filter((r) => r.itemType === type);
+    if (finish) items = items.filter((r) => r.finish === finish);
+    if (OD1) items = items.filter((r) => String(r.OD1) === String(OD1));
+    if (OD2) items = items.filter((r) => String(r.OD2) === String(OD2));
 
-  res.json({ items });
+    res.json({ items });
+  } catch (err) {
+    console.error("Errore API fittings OD:", err);
+    res.status(500).json({ error: "Catalogo non disponibile" });
+  }
 });
 
 // ========== EXPORT EXCEL (sconti, alloy surcharge, trasporto) – INVARIATO ==========
@@ -346,7 +386,7 @@ app.post("/api/export", async (req, res) => {
 
 // Ricarica catalogo da Excel (se modifichi i file)
 app.post("/api/reload", (req, res) => {
-  catalog = loadCatalog();
+  catalog = safeLoadCatalog();
   res.json({
     ok: true,
     counts: {

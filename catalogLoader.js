@@ -102,47 +102,52 @@ export const FINISHES = [
 // ---------- TUBES (ND, peso kg/m, €/m per finitura) ----------
 
 function loadTubesCatalog() {
-  if (!fs.existsSync(asmePath)) return [];
-  const wb = xlsx.readFile(asmePath);
+  try {
+    if (!fs.existsSync(asmePath)) return [];
+    const wb = xlsx.readFile(asmePath);
 
-  // prova prima "Tubes", altrimenti primo foglio
-  const sheetName = wb.Sheets["Tubes"]
-    ? "Tubes"
-    : wb.SheetNames.find((n) => n.toLowerCase().includes("tube")) ||
-      wb.SheetNames[0];
+    // prova prima "Tubes", altrimenti primo foglio
+    const sheetName = wb.Sheets["Tubes"]
+      ? "Tubes"
+      : wb.SheetNames.find((n) => n.toLowerCase().includes("tube")) ||
+        wb.SheetNames[0];
 
-  const rows = sheetJSON(wb, sheetName);
-  const out = [];
+    const rows = sheetJSON(wb, sheetName);
+    const out = [];
 
-  for (const r of rows) {
-    const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
-    const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
-    const ND = formatDimension(mmRaw, inchRaw);
-    if (!ND) continue;
+    for (const r of rows) {
+      const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
+      const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+      const ND = formatDimension(mmRaw, inchRaw);
+      if (!ND) continue;
 
-    for (const finish of FINISHES) {
-      const price = parseNum(pick(r, finish.tubePriceKeys));
-      if (price <= 0) continue;
+      for (const finish of FINISHES) {
+        const price = parseNum(pick(r, finish.tubePriceKeys));
+        if (price <= 0) continue;
 
-      const codeRaw = pick(r, finish.tubeCodeKeys);
-      const code = codeRaw != null ? String(codeRaw).trim() : "";
+        const codeRaw = pick(r, finish.tubeCodeKeys);
+        const code = codeRaw != null ? String(codeRaw).trim() : "";
 
-      const pesoKgM = parseNum(
-        pick(r, ["Peso Kg/m", "Peso kg/m", "Weight kg/m", "Kg/m"])
-      );
+        const pesoKgM = parseNum(
+          pick(r, ["Peso Kg/m", "Peso kg/m", "Weight kg/m", "Kg/m"])
+        );
 
-      out.push({
-        itemType: "Tubes",
-        finish: finish.key,
-        ND,
-        code,
-        pesoKgM,
-        pricePerM: price,
-      });
+        out.push({
+          itemType: "Tubes",
+          finish: finish.key,
+          ND,
+          code,
+          pesoKgM,
+          pricePerM: price,
+        });
+      }
     }
-  }
 
-  return out;
+    return out;
+  } catch (err) {
+    console.error("Errore nel caricamento del catalogo Tubes:", err);
+    return [];
+  }
 }
 
 // ---------- FITTINGS SEMPLICI (solo ND) ----------
@@ -190,47 +195,52 @@ const SIMPLE_SHEETS = [
 ];
 
 function loadSimpleFittingsCatalog() {
-  if (!fs.existsSync(asmePath)) return [];
-  const wb = xlsx.readFile(asmePath);
-  const out = [];
+  try {
+    if (!fs.existsSync(asmePath)) return [];
+    const wb = xlsx.readFile(asmePath);
+    const out = [];
 
-  for (const def of SIMPLE_SHEETS) {
-    // trova il primo foglio che esiste tra quelli indicati
-    const sheetName =
-      def.sheetNames.find((n) => wb.Sheets[n]) ||
-      wb.SheetNames.find((n) =>
-        n.toLowerCase().includes(def.itemType.split(" ")[0].toLowerCase())
-      );
+    for (const def of SIMPLE_SHEETS) {
+      // trova il primo foglio che esiste tra quelli indicati
+      const sheetName =
+        def.sheetNames.find((n) => wb.Sheets[n]) ||
+        wb.SheetNames.find((n) =>
+          n.toLowerCase().includes(def.itemType.split(" ")[0].toLowerCase())
+        );
 
-    if (!sheetName) continue;
+      if (!sheetName) continue;
 
-    const rows = sheetJSON(wb, sheetName);
+      const rows = sheetJSON(wb, sheetName);
 
-    for (const r of rows) {
-      const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
-      const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
-      const ND = formatDimension(mmRaw, inchRaw);
-      if (!ND) continue;
+      for (const r of rows) {
+        const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
+        const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+        const ND = formatDimension(mmRaw, inchRaw);
+        if (!ND) continue;
 
-      for (const finish of FINISHES) {
-        const price = parseNum(pick(r, finish.fittingPriceKeys));
-        if (price <= 0) continue;
+        for (const finish of FINISHES) {
+          const price = parseNum(pick(r, finish.fittingPriceKeys));
+          if (price <= 0) continue;
 
-        const codeRaw = pick(r, finish.fittingCodeKeys);
-        const code = codeRaw != null ? String(codeRaw).trim() : "";
+          const codeRaw = pick(r, finish.fittingCodeKeys);
+          const code = codeRaw != null ? String(codeRaw).trim() : "";
 
-        out.push({
-          itemType: def.itemType,
-          finish: finish.key,
-          ND,
-          code,
-          pricePerPc: price,
-        });
+          out.push({
+            itemType: def.itemType,
+            finish: finish.key,
+            ND,
+            code,
+            pricePerPc: price,
+          });
+        }
       }
     }
-  }
 
-  return out;
+    return out;
+  } catch (err) {
+    console.error("Errore nel caricamento del catalogo fittings (ND):", err);
+    return [];
+  }
 }
 
 // ---------- TEES + REDUCERS (OD1 più piccolo, OD2 più grande) ----------
@@ -251,74 +261,84 @@ const COMPLEX_SHEETS = [
 ];
 
 function loadComplexCatalog() {
-  if (!fs.existsSync(teesReducersPath)) return [];
-  const wb = xlsx.readFile(teesReducersPath);
-  const out = [];
+  try {
+    if (!fs.existsSync(teesReducersPath)) return [];
+    const wb = xlsx.readFile(teesReducersPath);
+    const out = [];
 
-  for (const def of COMPLEX_SHEETS) {
-    const sheetName =
-      def.sheetNames.find((n) => wb.Sheets[n]) ||
-      wb.SheetNames.find((n) =>
-        n.toLowerCase().includes(def.itemType.split(" ")[0].toLowerCase())
-      );
+    for (const def of COMPLEX_SHEETS) {
+      const sheetName =
+        def.sheetNames.find((n) => wb.Sheets[n]) ||
+        wb.SheetNames.find((n) =>
+          n.toLowerCase().includes(def.itemType.split(" ")[0].toLowerCase())
+        );
 
-    if (!sheetName) continue;
+      if (!sheetName) continue;
 
-    const rows = sheetJSON(wb, sheetName);
+      const rows = sheetJSON(wb, sheetName);
 
-    for (const r of rows) {
-      const inchOD1raw = pick(r, ["Inch OD1", "OD1 inch", "Inch od1"]);
-      const mmOD1raw = pick(r, ["mm OD1", "OD1 mm", "mm od1"]);
-      const inchOD2raw = pick(r, ["Inch OD2", "OD2 inch", "Inch od2"]);
-      const mmOD2raw = pick(r, ["mm OD2", "OD2 mm", "mm od2"]);
-      if (mmOD1raw == null || mmOD2raw == null) continue;
+      for (const r of rows) {
+        const inchOD1raw = pick(r, ["Inch OD1", "OD1 inch", "Inch od1"]);
+        const mmOD1raw = pick(r, ["mm OD1", "OD1 mm", "mm od1"]);
+        const inchOD2raw = pick(r, ["Inch OD2", "OD2 inch", "Inch od2"]);
+        const mmOD2raw = pick(r, ["mm OD2", "OD2 mm", "mm od2"]);
+        if (mmOD1raw == null || mmOD2raw == null) continue;
 
-      let mm1 = parseNum(mmOD1raw);
-      let mm2 = parseNum(mmOD2raw);
-      let inch1 = inchOD1raw;
-      let inch2 = inchOD2raw;
+        let mm1 = parseNum(mmOD1raw);
+        let mm2 = parseNum(mmOD2raw);
+        let inch1 = inchOD1raw;
+        let inch2 = inchOD2raw;
 
-      if (mm1 && mm2 && mm1 > mm2) {
-        [mm1, mm2] = [mm2, mm1];
-        [inch1, inch2] = [inch2, inch1];
-      }
+        if (mm1 && mm2 && mm1 > mm2) {
+          [mm1, mm2] = [mm2, mm1];
+          [inch1, inch2] = [inch2, inch1];
+        }
 
-      const OD1 = formatDimension(mm1 || mmOD1raw, inch1);
-      const OD2 = formatDimension(mm2 || mmOD2raw, inch2);
-      if (!OD1 || !OD2) continue;
+        const OD1 = formatDimension(mm1 || mmOD1raw, inch1);
+        const OD2 = formatDimension(mm2 || mmOD2raw, inch2);
+        if (!OD1 || !OD2) continue;
 
-      for (const finish of FINISHES) {
-        const price = parseNum(pick(r, finish.fittingPriceKeys));
-        if (price <= 0) continue;
+        for (const finish of FINISHES) {
+          const price = parseNum(pick(r, finish.fittingPriceKeys));
+          if (price <= 0) continue;
 
-        const codeRaw = pick(r, finish.fittingCodeKeys);
-        const code = codeRaw != null ? String(codeRaw).trim() : "";
+          const codeRaw = pick(r, finish.fittingCodeKeys);
+          const code = codeRaw != null ? String(codeRaw).trim() : "";
 
-        out.push({
-          itemType: def.itemType,
-          finish: finish.key,
-          OD1,
-          OD2,
-          code,
-          pricePerPc: price,
-        });
+          out.push({
+            itemType: def.itemType,
+            finish: finish.key,
+            OD1,
+            OD2,
+            code,
+            pricePerPc: price,
+          });
+        }
       }
     }
-  }
 
-  return out;
+    return out;
+  } catch (err) {
+    console.error("Errore nel caricamento del catalogo Tees/Reducers:", err);
+    return [];
+  }
 }
 
 // ---------- entry point per l'app ----------
 
 export function loadCatalog() {
-  const tubes = loadTubesCatalog();
-  const simple = loadSimpleFittingsCatalog();
-  const complex = loadComplexCatalog();
+  try {
+    const tubes = loadTubesCatalog();
+    const simple = loadSimpleFittingsCatalog();
+    const complex = loadComplexCatalog();
 
-  return {
-    tubes, // Tubes (solo ND)
-    simple, // Elbows 90°, Elbows 45°, End Caps, Ferrule A/B/C (solo ND)
-    complex, // Tees, Conc. Reducers, Ecc. Reducers (OD1/OD2)
-  };
+    return {
+      tubes, // Tubes (solo ND)
+      simple, // Elbows 90°, Elbows 45°, End Caps, Ferrule A/B/C (solo ND)
+      complex, // Tees, Conc. Reducers, Ecc. Reducers (OD1/OD2)
+    };
+  } catch (err) {
+    console.error("Errore generale nel caricamento del catalogo:", err);
+    return { tubes: [], simple: [], complex: [] };
+  }
 }
