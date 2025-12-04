@@ -48,6 +48,13 @@ function computeRowUnitPrice(row) {
   return base + peso * asKg;
 }
 
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 // cache temporanea per OD1 -> OD2
 let currentComplexMap = {}; // { OD1: Set(OD2, ...) }
 
@@ -162,10 +169,39 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch((err) => console.error("Errore caricamento finiture:", err));
 
+  function populateOd2Options(od1, previousOd2 = "") {
+    od2Select.innerHTML = '<option value="">Seleziona</option>';
+    od2Select.disabled = true;
+    if (!od1 || !currentComplexMap[od1]) return;
+
+    const od2Vals = Array.from(currentComplexMap[od1]).sort((a, b) => {
+      const na = parseFloat(a.replace(",", "."));
+      const nb = parseFloat(b.replace(",", "."));
+      if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+      return na - nb;
+    });
+    for (const v of od2Vals) {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      od2Select.appendChild(opt);
+    }
+    if (previousOd2 && od2Vals.includes(previousOd2)) {
+      od2Select.value = previousOd2;
+      od2Select.disabled = false;
+    } else if (od2Vals.length) {
+      od2Select.disabled = false;
+    }
+  }
+
   // funzione per aggiornare ND / OD1-OD2 quando cambia finitura o item
   async function updateSizeOptions() {
     const finish = finishSelect.value;
     const itemType = itemTypeSelect.value;
+
+    const previousND = ndSelect.value.trim();
+    const previousOD1 = od1Select.value.trim();
+    const previousOD2 = od2Select.value.trim();
 
     // reset selezioni
     ndSelect.innerHTML = '<option value="">Seleziona</option>';
@@ -192,13 +228,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
-        for (const nd of Array.from(ndSet)
+        const ndValues = Array.from(ndSet)
           .filter(Boolean)
-          .sort(sortByNumericString)) {
+          .sort(sortByNumericString);
+        for (const nd of ndValues) {
           const opt = document.createElement("option");
           opt.value = nd;
           opt.textContent = nd;
           ndSelect.appendChild(opt);
+        }
+        if (previousND && ndValues.includes(previousND)) {
+          ndSelect.value = previousND;
         }
         ndGroup.classList.remove("d-none");
         od1Group.classList.add("d-none");
@@ -214,13 +254,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
-        for (const nd of Array.from(ndSet)
+        const ndValues = Array.from(ndSet)
           .filter(Boolean)
-          .sort(sortByNumericString)) {
+          .sort(sortByNumericString);
+        for (const nd of ndValues) {
           const opt = document.createElement("option");
           opt.value = nd;
           opt.textContent = nd;
           ndSelect.appendChild(opt);
+        }
+        if (previousND && ndValues.includes(previousND)) {
+          ndSelect.value = previousND;
         }
         ndGroup.classList.remove("d-none");
         od1Group.classList.add("d-none");
@@ -257,10 +301,17 @@ document.addEventListener("DOMContentLoaded", () => {
           od1Select.appendChild(opt);
         }
 
+        if (previousOD1 && od1Values.includes(previousOD1)) {
+          od1Select.value = previousOD1;
+          populateOd2Options(previousOD1, previousOD2);
+        }
+
         ndGroup.classList.add("d-none");
         od1Group.classList.remove("d-none");
         od2Group.classList.remove("d-none");
-        od2Select.disabled = true;
+        if (!previousOD1 || !od1Values.includes(previousOD1)) {
+          od2Select.disabled = true;
+        }
       } else {
         // fallback
         ndGroup.classList.remove("d-none");
@@ -275,23 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Popola OD2 quando scelgo OD1
   od1Select.addEventListener("change", () => {
-    const od1 = od1Select.value;
-    od2Select.innerHTML = '<option value="">Seleziona</option>';
-    od2Select.disabled = true;
-    if (!od1 || !currentComplexMap[od1]) return;
-    const od2Vals = Array.from(currentComplexMap[od1]).sort((a, b) => {
-      const na = parseFloat(a.replace(",", "."));
-      const nb = parseFloat(b.replace(",", "."));
-      if (isNaN(na) || isNaN(nb)) return a.localeCompare(b);
-      return na - nb;
-    });
-    for (const v of od2Vals) {
-      const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
-      od2Select.appendChild(opt);
-      od2Select.disabled = false;
-    }
+    populateOd2Options(od1Select.value);
   });
 
   // Cambia UI in base all'item scelto (Q.ty unità, Alloy abilitato solo Tubes, ND/OD)
@@ -610,22 +645,22 @@ function renderTable() {
 
     const colAlloy = document.createElement("td");
     if (row.itemType === "Tubes") {
-      colAlloy.classList.add("text-end");
+      colAlloy.classList.add("text-end", "col-alloy");
       colAlloy.textContent = (row.alloySurchargePerKg ?? 0).toFixed(2);
     } else {
       colAlloy.textContent = "-";
-      colAlloy.classList.add("text-center");
+      colAlloy.classList.add("text-center", "col-alloy");
     }
     tr.appendChild(colAlloy);
 
     const colUnit = document.createElement("td");
-    colUnit.classList.add("text-end");
+    colUnit.classList.add("text-end", "col-unit");
     const unitPrice = computeRowUnitPrice(row);
     colUnit.textContent = unitPrice.toFixed(2);
     tr.appendChild(colUnit);
 
     const colQty = document.createElement("td");
-    colQty.classList.add("text-end");
+    colQty.classList.add("text-end", "col-qty");
     const qtyValue = Number(row.quantity ?? 0);
     colQty.textContent = qtyValue.toString();
     tr.appendChild(colQty);
@@ -633,7 +668,7 @@ function renderTable() {
     const colTotal = document.createElement("td");
     colTotal.classList.add("text-end");
     const rowTotal = unitPrice * qtyValue;
-    colTotal.textContent = rowTotal.toFixed(2);
+    colTotal.textContent = formatCurrency(rowTotal);
     grandTotal += rowTotal;
     tr.appendChild(colTotal);
 
@@ -664,7 +699,7 @@ function renderTable() {
 
     const valueCell = document.createElement("td");
     valueCell.classList.add("text-end");
-    valueCell.textContent = grandTotal.toFixed(2);
+    valueCell.textContent = formatCurrency(grandTotal);
     totalRow.appendChild(valueCell);
 
     const emptyCell = document.createElement("td");

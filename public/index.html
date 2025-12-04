@@ -33,6 +33,15 @@
         font-size: 0.75rem;
         color: #6c757d;
       }
+      .col-alloy {
+        width: 90px;
+      }
+      .col-unit {
+        width: 120px;
+      }
+      .col-qty {
+        width: 110px;
+      }
     </style>
   </head>
   <body>
@@ -52,7 +61,7 @@
             </div>
 
             <!-- Item -->
-            <div class="col-md-2">
+            <div class="col-3">
               <label for="itemType" class="form-label">Item</label>
               <select id="itemType" class="form-select">
                 <option value="">-- Seleziona --</option>
@@ -70,7 +79,7 @@
             </div>
 
             <!-- Q.ty -->
-            <div class="col-md-3" id="qtyGroup">
+            <div class="col-md-2" id="qtyGroup">
               <label for="qtyInput" class="form-label">
                 Q.ty <span id="qtyUnitSpan">(m)</span>
               </label>
@@ -185,9 +194,9 @@
                   <th>Description</th>
                   <th>Code</th>
                   <th>Prezzo base</th>
-                  <th>Alloy Surcharge</th>
-                  <th>P.U.</th>
-                  <th>Qty</th>
+                  <th class="col-alloy">All. Sur.</th>
+                  <th class="col-unit">P.U.</th>
+                  <th class="col-qty">Qty</th>
                   <th>Totale</th>
                   <th>Remove</th>
                 </tr>
