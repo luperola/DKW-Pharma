@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const alloyGroup = qs("alloyGroup");
   const alloyInput = qs("alloyInput");
 
-  const addRowBtn = qs("addRowBtn");
+  const addRowBtn = qs("addBtn");
   const exportBtn = qs("exportBtn");
   const importBtn = qs("importBtn");
   const importFile = qs("importFile");
