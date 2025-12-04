@@ -328,6 +328,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const itemType = itemTypeSelect.value;
     const alloy = parseFloat(alloyInput.value ?? "0") || 0;
 
+    const prevND = ndSelect.value;
+    const prevOD1 = od1Select.value;
+    const prevOD2 = od2Select.value;
+
     let qtyRaw = qtyInput.value ?? "0";
     let qty = parseInt(qtyRaw, 10);
     if (isNaN(qty)) qty = 0;
@@ -449,6 +453,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       currentRows.push(row);
       renderTable();
+
+      // Mantiene le scelte precedenti per facilitare l'inserimento della riga successiva
+      ndSelect.value = prevND;
+      od1Select.value = prevOD1;
+      od2Select.value = prevOD2;
     } catch (err) {
       console.error("Errore durante la lettura del catalogo:", err);
       alert(err?.message || "Errore durante la lettura del catalogo.");
@@ -569,6 +578,8 @@ function renderTable() {
   const tbody = document.querySelector("#offerTable tbody");
   tbody.innerHTML = "";
 
+  let grandTotal = 0;
+
   currentRows.forEach((row, idx) => {
     const tr = document.createElement("tr");
 
@@ -621,7 +632,9 @@ function renderTable() {
 
     const colTotal = document.createElement("td");
     colTotal.classList.add("text-end");
-    colTotal.textContent = (unitPrice * qtyValue).toFixed(2);
+    const rowTotal = unitPrice * qtyValue;
+    colTotal.textContent = rowTotal.toFixed(2);
+    grandTotal += rowTotal;
     tr.appendChild(colTotal);
 
     const colActions = document.createElement("td");
@@ -639,4 +652,24 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
+  if (currentRows.length) {
+    const totalRow = document.createElement("tr");
+    totalRow.classList.add("table-secondary", "fw-semibold");
+
+    const labelCell = document.createElement("td");
+    labelCell.colSpan = 8;
+    labelCell.classList.add("text-end");
+    labelCell.textContent = "Grand Total";
+    totalRow.appendChild(labelCell);
+
+    const valueCell = document.createElement("td");
+    valueCell.classList.add("text-end");
+    valueCell.textContent = grandTotal.toFixed(2);
+    totalRow.appendChild(valueCell);
+
+    const emptyCell = document.createElement("td");
+    totalRow.appendChild(emptyCell);
+
+    tbody.appendChild(totalRow);
+  }
 }
