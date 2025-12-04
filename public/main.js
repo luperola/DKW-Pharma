@@ -404,17 +404,17 @@ document.addEventListener("DOMContentLoaded", () => {
         data = raw ? JSON.parse(raw) : {};
       } catch (parseErr) {
         console.error("Risposta catalogo non valida:", raw, parseErr);
-        alert("Catalogo non disponibile: risposta non valida dal server.");
-        return;
+        throw new Error(
+          "Catalogo non disponibile: risposta non valida dal server."
+        );
       }
 
       if (!res.ok) {
         const serverMsg =
-          typeof data?.error === "string" && data.error.trim()
-            ? data.error.trim()
-            : `Catalogo non disponibile (codice ${res.status}).`;
-        alert(serverMsg);
-        return;
+          (typeof data?.error === "string" && data.error.trim()) ||
+          (raw && raw.trim()) ||
+          `Catalogo non disponibile (codice ${res.status}).`;
+        throw new Error(serverMsg);
       }
 
       const items = data.items || [];
@@ -456,8 +456,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // reset Q.ty ma non gli altri
       qtyInput.value = "";
     } catch (err) {
-      console.error(err);
-      alert("Errore durante la lettura del catalogo.");
+      console.error("Errore durante la lettura del catalogo:", err);
+      alert(err?.message || "Errore durante la lettura del catalogo.");
     }
   });
 
