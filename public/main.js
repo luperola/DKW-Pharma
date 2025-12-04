@@ -76,9 +76,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const exportModalElement = qs("exportModal");
   const exportModal = new bootstrap.Modal(exportModalElement);
 
-  const richiestaInputModal = qs("richiestaInputModal");
-  const clienteInputModal = qs("clienteInputModal");
-  const cantiereInputModal = qs("cantiereInputModal");
   const discountSuggestedRadio = qs("discountSuggestedRadio");
   const discountSuggestedValue = qs("discountSuggestedValue");
   const discountNoneRadio = qs("discountNoneRadio");
@@ -452,16 +449,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       currentRows.push(row);
       renderTable();
-
-      // reset Q.ty ma non gli altri
-      qtyInput.value = "";
     } catch (err) {
       console.error("Errore durante la lettura del catalogo:", err);
       alert(err?.message || "Errore durante la lettura del catalogo.");
     }
   });
 
-  // EXPORT: apre la modale (Richiesta / Cantiere / Sconto / Trasporto)
+  // EXPORT: apre la modale (Sconto / Trasporto)
   exportBtn.addEventListener("click", () => {
     if (!currentRows.length) {
       alert("Non ci sono righe da esportare.");
@@ -483,11 +477,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const transportPercent = parseFloat(transportSelectModal.value ?? "0") || 0;
 
-    const meta = {
-      richiesta: richiestaInputModal.value || "",
-      cliente: clienteInputModal.value || "",
-      cantiere: cantiereInputModal.value || "",
-    };
     const fileNameSafe =
       (fileNameInput.value || getDefaultFileName()).trim() ||
       getDefaultFileName();
@@ -499,7 +488,6 @@ document.addEventListener("DOMContentLoaded", () => {
           rows: currentRows,
           discountPercent,
           transport: { percent: transportPercent },
-          meta,
         }),
       });
 

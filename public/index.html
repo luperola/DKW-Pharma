@@ -44,7 +44,7 @@
         <div class="card-body">
           <div class="row g-3 align-items-end">
             <!-- Finitura -->
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label for="finishSelect" class="form-label">ASME BPE</label>
               <select id="finishSelect" class="form-select">
                 <!-- popolato via JS: ASME BPE SF1 / ASME BPE SF4 -->
@@ -52,7 +52,7 @@
             </div>
 
             <!-- Item -->
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label for="itemType" class="form-label">Item</label>
               <select id="itemType" class="form-select">
                 <option value="">-- Seleziona --</option>
@@ -70,7 +70,7 @@
             </div>
 
             <!-- Q.ty -->
-            <div class="col-md-2" id="qtyGroup">
+            <div class="col-md-3" id="qtyGroup">
               <label for="qtyInput" class="form-label">
                 Q.ty <span id="qtyUnitSpan">(m)</span>
               </label>
@@ -101,7 +101,7 @@
             </div>
 
             <!-- ND (per Tubes, Elbows, End Caps, Ferrules) -->
-            <div class="col-md-2" id="ndGroup">
+            <div class="col-md-3" id="ndGroup">
               <label for="ndSelect" class="form-label">DN (mm / inch)</label>
               <select id="ndSelect" class="form-select">
                 <option value="">Seleziona</option>
@@ -201,7 +201,7 @@
       </div>
     </div>
 
-    <!-- MODALE EXPORT: richiesta / cliente / cantiere / sconto / trasporto -->
+    <!-- MODALE EXPORT: sconto / trasporto -->
     <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -215,41 +215,6 @@
             ></button>
           </div>
           <div class="modal-body">
-            <div class="row g-3 mb-2">
-              <div class="col-md-4">
-                <label for="richiestaInputModal" class="form-label"
-                  >Richiesta</label
-                >
-                <input
-                  type="text"
-                  id="richiestaInputModal"
-                  class="form-control"
-                />
-              </div>
-              <div class="col-md-4">
-                <label for="clienteInputModal" class="form-label"
-                  >Cliente</label
-                >
-                <input
-                  type="text"
-                  id="clienteInputModal"
-                  class="form-control"
-                />
-              </div>
-              <div class="col-md-4">
-                <label for="cantiereInputModal" class="form-label"
-                  >Cantiere</label
-                >
-                <input
-                  type="text"
-                  id="cantiereInputModal"
-                  class="form-control"
-                />
-              </div>
-            </div>
-
-            <hr />
-
             <div class="mb-3">
               <label class="form-label fw-semibold"
                 >Seleziona lo sconto da applicare all'offerta:</label
