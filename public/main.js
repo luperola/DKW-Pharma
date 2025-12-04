@@ -645,8 +645,19 @@ function renderTable() {
 
     const colAlloy = document.createElement("td");
     if (row.itemType === "Tubes") {
-      colAlloy.classList.add("text-end", "col-alloy");
-      colAlloy.textContent = (row.alloySurchargePerKg ?? 0).toFixed(2);
+      colAlloy.classList.add("col-alloy");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = "0.01";
+      input.min = "0";
+      input.className = "form-control form-control-sm text-end";
+      input.value = (row.alloySurchargePerKg ?? 0).toFixed(2);
+      input.addEventListener("change", () => {
+        const newVal = parseFloat(input.value.replace(",", "."));
+        row.alloySurchargePerKg = isNaN(newVal) || newVal < 0 ? 0 : newVal;
+        renderTable();
+      });
+      colAlloy.appendChild(input);
     } else {
       colAlloy.textContent = "-";
       colAlloy.classList.add("text-center", "col-alloy");
@@ -660,9 +671,20 @@ function renderTable() {
     tr.appendChild(colUnit);
 
     const colQty = document.createElement("td");
-    colQty.classList.add("text-end", "col-qty");
+    colQty.classList.add("col-qty");
     const qtyValue = Number(row.quantity ?? 0);
-    colQty.textContent = qtyValue.toString();
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = "0";
+    qtyInput.step = "1";
+    qtyInput.className = "form-control form-control-sm text-end";
+    qtyInput.value = qtyValue.toString();
+    qtyInput.addEventListener("change", () => {
+      const newQty = parseInt(qtyInput.value, 10);
+      row.quantity = isNaN(newQty) || newQty < 0 ? 0 : newQty;
+      renderTable();
+    });
+    colQty.appendChild(qtyInput);
     tr.appendChild(colQty);
 
     const colTotal = document.createElement("td");
