@@ -28,6 +28,26 @@ function sortByNumericString(a, b) {
   return String(a).localeCompare(String(b));
 }
 
+function roundToDecimals(value, decimals) {
+  return (
+    Math.round((Number(value || 0) + Number.EPSILON) * 10 ** decimals) /
+    10 ** decimals
+  );
+}
+
+function computeRowUnitPrice(row) {
+  const base =
+    row.itemType === "Tubes"
+      ? Number(row.basePricePerM || 0)
+      : Number(row.basePricePerPc || 0);
+
+  if (row.itemType !== "Tubes") return base;
+
+  const peso = roundToDecimals(row.pesoKgM || 0, 3);
+  const asKg = Number(row.alloySurchargePerKg || 0);
+  return base + peso * asKg;
+}
+
 // cache temporanea per OD1 -> OD2
 let currentComplexMap = {}; // { OD1: Set(OD2, ...) }
 
@@ -74,26 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
     return `Offerta_${yyyy}-${mm}-${dd}`;
-  }
-
-  function roundToDecimals(value, decimals) {
-    return (
-      Math.round((Number(value || 0) + Number.EPSILON) * 10 ** decimals) /
-      10 ** decimals
-    );
-  }
-
-  function computeRowUnitPrice(row) {
-    const base =
-      row.itemType === "Tubes"
-        ? Number(row.basePricePerM || 0)
-        : Number(row.basePricePerPc || 0);
-
-    if (row.itemType !== "Tubes") return base;
-
-    const peso = roundToDecimals(row.pesoKgM || 0, 3);
-    const asKg = Number(row.alloySurchargePerKg || 0);
-    return base + peso * asKg;
   }
 
   function computeOfferTotal(rows) {
