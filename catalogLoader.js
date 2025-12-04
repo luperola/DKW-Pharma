@@ -192,6 +192,10 @@ const SIMPLE_SHEETS = [
     itemType: "Ferrule C (Short)",
     sheetNames: ["Ferrule C (Short)", "Ferrule C Short", "Ferrule C"],
   },
+  {
+    itemType: "Clamps",
+    sheetNames: ["Clamps", "Clamp"],
+  },
 ];
 
 function loadSimpleFittingsCatalog() {
