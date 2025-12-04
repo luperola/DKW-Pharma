@@ -555,21 +555,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore durante l'importazione.");
     }
   });
-
-  // Ricarica catalogo
-  reloadCatalogBtn.addEventListener("click", async () => {
-    try {
-      const res = await fetch("/api/reload", { method: "POST" });
-      const data = await res.json();
-      console.log("Catalogo ricaricato:", data);
-      alert("Catalogo ricaricato.");
-      // Aggiorno ND/OD dopo reload se c'è selezione
-      updateSizeOptions();
-    } catch (err) {
-      console.error(err);
-      alert("Errore nel ricaricare il catalogo.");
-    }
-  });
 });
 
 // Render tabella righe
@@ -596,31 +581,6 @@ function renderTable() {
     colCode.textContent = row.code || "";
     tr.appendChild(colCode);
 
-    const colQty = document.createElement("td");
-    colQty.classList.add("text-end");
-    colQty.textContent = (row.quantity ?? 0).toString();
-    tr.appendChild(colQty);
-
-    const colAlloy = document.createElement("td");
-    colAlloy.classList.add("text-end");
-    if (row.itemType === "Tubes") {
-      colAlloy.textContent = (row.alloySurchargePerKg ?? 0).toFixed(2);
-    } else {
-      colAlloy.textContent = "-";
-      colAlloy.classList.add("text-center");
-    }
-    tr.appendChild(colAlloy);
-
-    const colPeso = document.createElement("td");
-    colPeso.classList.add("text-end");
-    if (row.itemType === "Tubes") {
-      colPeso.textContent = (row.pesoKgM ?? 0).toFixed(3);
-    } else {
-      colPeso.textContent = "-";
-      colPeso.classList.add("text-center");
-    }
-    tr.appendChild(colPeso);
-
     const colBase = document.createElement("td");
     colBase.classList.add("text-end");
     const base =
@@ -629,6 +589,33 @@ function renderTable() {
         : row.basePricePerPc ?? 0;
     colBase.textContent = base.toFixed(2);
     tr.appendChild(colBase);
+
+    const colAlloy = document.createElement("td");
+    if (row.itemType === "Tubes") {
+      colAlloy.classList.add("text-end");
+      colAlloy.textContent = (row.alloySurchargePerKg ?? 0).toFixed(2);
+    } else {
+      colAlloy.textContent = "-";
+      colAlloy.classList.add("text-center");
+    }
+    tr.appendChild(colAlloy);
+
+    const colUnit = document.createElement("td");
+    colUnit.classList.add("text-end");
+    const unitPrice = computeRowUnitPrice(row);
+    colUnit.textContent = unitPrice.toFixed(2);
+    tr.appendChild(colUnit);
+
+    const colQty = document.createElement("td");
+    colQty.classList.add("text-end");
+    const qtyValue = Number(row.quantity ?? 0);
+    colQty.textContent = qtyValue.toString();
+    tr.appendChild(colQty);
+
+    const colTotal = document.createElement("td");
+    colTotal.classList.add("text-end");
+    colTotal.textContent = (unitPrice * qtyValue).toFixed(2);
+    tr.appendChild(colTotal);
 
     const colActions = document.createElement("td");
     colActions.classList.add("text-center");

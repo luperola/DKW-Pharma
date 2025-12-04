@@ -125,28 +125,24 @@
                 <option value="">Seleziona</option>
               </select>
             </div>
-
-            <!-- Pulsante Aggiungi -->
-            <div class="col-md-2 d-grid">
-              <button id="addRowBtn" class="btn btn-primary">
-                Aggiungi riga
-              </button>
-            </div>
           </div>
         </div>
       </div>
 
       <!-- Toolbar con i tre tasti -->
       <div class="card mb-3">
-        <div class="card-body d-flex flex-wrap justify-content-end gap-2">
-          <button
-            id="reloadCatalogBtn"
-            class="btn btn-outline-secondary btn-sm"
-          >
-            Ricarica catalogo
+        <div
+          class="card-body d-flex flex-wrap justify-content-start gap-3 align-items-center"
+        >
+          <button id="addRowBtn" class="btn btn-primary btn-lg">
+            Aggiungi riga
           </button>
 
-          <button id="importBtn" class="btn btn-outline-primary">
+          <button id="exportBtn" class="btn btn-success btn-lg">
+            Scarica Excel
+          </button>
+
+          <button id="importBtn" class="btn btn-warning btn-lg">
             Importa Excel
           </button>
           <input
@@ -155,8 +151,6 @@
             accept=".xlsx,.xls"
             class="d-none"
           />
-
-          <button id="exportBtn" class="btn btn-success">Esporta Excel</button>
         </div>
       </div>
 
@@ -171,14 +165,15 @@
               <thead class="table-light">
                 <tr>
                   <th>Pos</th>
-                  <th>Item</th>
-                  <th>Descrizione</th>
-                  <th>Codice</th>
-                  <th>Q.ty</th>
-                  <th>Alloy €/kg</th>
-                  <th>Peso kg/m</th>
+                  <th>Item Type</th>
+                  <th>Description</th>
+                  <th>Code</th>
                   <th>Prezzo base</th>
-                  <th></th>
+                  <th>Alloy Surcharge</th>
+                  <th>P.U.</th>
+                  <th>Qty</th>
+                  <th>Totale</th>
+                  <th>Remove</th>
                 </tr>
               </thead>
               <tbody>
