@@ -2,9 +2,12 @@
 import xlsx from "xlsx";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
-// cartella dati
-const dataDir = path.join(process.cwd(), "data");
+/// cartella dati (risolta rispetto a questo file, non alla cwd)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dataDir = path.join(__dirname, "data");
 const asmePath = path.join(dataDir, "ASME_BPE.xlsx");
 const teesReducersPath = path.join(dataDir, "Tees and reducers.xlsx");
 
