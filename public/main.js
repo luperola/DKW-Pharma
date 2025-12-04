@@ -9,6 +9,7 @@ const ND_ITEMS = new Set([
   "Elbows 90°",
   "Elbows 45°",
   "End Caps",
+  "Clamps",
   "Ferrule A (Long)",
   "Ferrule B (Medium)",
   "Ferrule C (Short)",
@@ -472,7 +473,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const catItem = items[0]; // se più di uno, prendo il primo
 
-      const description = `${itemType} ${finish} ${sizeText}`;
+      let description = `${itemType} ${finish} ${sizeText}`;
+      if (itemType === "Clamps") {
+        const flangeSize =
+          catItem.flangeSizeMm != null
+            ? String(catItem.flangeSizeMm).trim()
+            : "";
+        if (flangeSize) {
+          description += ` - Flange size mm: ${flangeSize}`;
+        }
+      }
+      if (
+        itemType === "Ferrule A (Long)" ||
+        itemType === "Ferrule B (Medium)" ||
+        itemType === "Ferrule C (Short)"
+      ) {
+        const lengthVal =
+          catItem.lengthMm != null ? String(catItem.lengthMm).trim() : "";
+        if (lengthVal) {
+          description += ` - L= ${lengthVal} mm`;
+        }
+      }
 
       const row = {
         finish,

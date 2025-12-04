@@ -222,19 +222,40 @@ function loadSimpleFittingsCatalog() {
         const ND = formatDimension(mmRaw, inchRaw);
         if (!ND) continue;
 
+        const isFerrule = def.itemType.startsWith("Ferrule");
+        const lengthRaw = isFerrule
+          ? pick(r, [
+              "Length",
+              "Lenght",
+              "Length mm",
+              "Lenght mm",
+              "Length (mm)",
+            ])
+          : null;
+        const lengthMm = isFerrule ? parseNum(lengthRaw) : null;
+
+        const flangeSizeRaw =
+          def.itemType === "Clamps"
+            ? pick(r, ["Flange size mm", "Flange size"])
+            : null;
+        const flangeSizeMm =
+          def.itemType === "Clamps" ? parseNum(flangeSizeRaw) : null;
+
         for (const finish of FINISHES) {
           const price = parseNum(pick(r, finish.fittingPriceKeys));
           if (price <= 0) continue;
 
           const codeRaw = pick(r, finish.fittingCodeKeys);
           const code = codeRaw != null ? String(codeRaw).trim() : "";
-
           out.push({
             itemType: def.itemType,
             finish: finish.key,
             ND,
             code,
             pricePerPc: price,
+            lengthMm: isFerrule && lengthMm ? lengthMm : null,
+            flangeSizeMm:
+              def.itemType === "Clamps" && flangeSizeMm ? flangeSizeMm : null,
           });
         }
       }
