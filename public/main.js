@@ -584,17 +584,9 @@ function renderTable() {
     colIndex.textContent = idx + 1;
     tr.appendChild(colIndex);
 
-    const colFinish = document.createElement("td");
-    colFinish.textContent = row.finish || "";
-    tr.appendChild(colFinish);
-
     const colItem = document.createElement("td");
     colItem.textContent = row.itemType || "";
     tr.appendChild(colItem);
-
-    const colSize = document.createElement("td");
-    colSize.textContent = row.size || "";
-    tr.appendChild(colSize);
 
     const colDesc = document.createElement("td");
     colDesc.textContent = row.description || "";

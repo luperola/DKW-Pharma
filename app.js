@@ -85,7 +85,7 @@ app.post("/api/export", async (req, res) => {
       { header: "U.M.", key: "um", width: 8 }, // D
       { header: "Quantità", key: "qty", width: 10 }, // E
       { header: "Prezzo unitario base €/m o €/pz", key: "base", width: 24 }, // F
-      { header: "Peso tubo", key: "peso", width: 12 }, // G
+      { header: "Peso tubo in Kg/m", key: "peso", width: 12 }, // G
       { header: "Alloy surcharge in €/kg", key: "asKg", width: 20 }, // H
       { header: "Alloy surcharge in €/mt", key: "asM", width: 20 }, // I
       { header: "Prezzo unitario", key: "pu", width: 16 }, // J
@@ -149,9 +149,10 @@ app.post("/api/export", async (req, res) => {
         : null;
       const asKg = isTube ? Number(item.alloySurchargePerKg || 0) : null;
       const asM = isTube
-        ? Math.round(((asKg || 0) * (peso || 0) + Number.EPSILON) * 100) / 100
+        ? Math.round(((asKg || 0) * (peso || 0) + Number.EPSILON) * 1000) / 1000
         : null;
-      const pu = isTube ? base + (asM || 0) : base;
+      const puBase = isTube ? base + (asM || 0) : base;
+      const pu = Math.round((puBase + Number.EPSILON) * 1000) / 1000;
       const tot = pu * qty;
 
       ws.addRow({
@@ -177,7 +178,7 @@ app.post("/api/export", async (req, res) => {
         // F..K
         const cell = ws.getCell(i, j);
         if (typeof cell.value === "number") {
-          const decimals = j === 7 ? 3 : 2;
+          const decimals = [7, 9, 10].includes(j) ? 3 : 2;
           cell.value =
             Math.round((cell.value + Number.EPSILON) * 10 ** decimals) /
             10 ** decimals;
@@ -233,7 +234,7 @@ app.post("/api/export", async (req, res) => {
         const iVal = Number(ws.getCell(i, 9).value || 0); // I
         jNew = fNew + iVal;
       }
-      jNew = Math.round((jNew + Number.EPSILON) * 100) / 100;
+      jNew = Math.round((jNew + Number.EPSILON) * 1000) / 1000;
       const cellJ = ws.getCell(i, 10);
       cellJ.value = jNew;
       cellJ.numFmt = "€ #,##0.00";
