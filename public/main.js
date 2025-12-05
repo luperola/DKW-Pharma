@@ -18,6 +18,8 @@ const ND_ITEMS = new Set([
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
+const STILMAS_OSLA_DISCOUNT = 51.87;
+
 function qs(id) {
   return document.getElementById(id);
 }
@@ -86,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const discountSuggestedRadio = qs("discountSuggestedRadio");
   const discountSuggestedValue = qs("discountSuggestedValue");
-  const discountNoneRadio = qs("discountNoneRadio");
+  const discountStilmasRadio = qs("discountStilmasRadio");
   const discountOtherRadio = qs("discountOtherRadio");
   const discountCustomInput = qs("discountCustomInput");
   const transportSelectModal = qs("transportSelectModal");
@@ -123,10 +125,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const suggested = getSuggestedDiscount(totalValue);
     discountSuggestedValue.textContent = `${suggested.toFixed(2)}%`;
     discountSuggestedRadio.value = suggested.toString();
+    discountStilmasRadio.value = STILMAS_OSLA_DISCOUNT.toString();
 
     if (!fileNameInput.value) fileNameInput.value = getDefaultFileName();
     discountSuggestedRadio.checked = true;
-    discountNoneRadio.checked = false;
+    discountStilmasRadio.checked = false;
     discountOtherRadio.checked = false;
     discountCustomInput.value = "";
     discountCustomInput.disabled = true;
@@ -136,7 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function getSelectedDiscount() {
     if (discountSuggestedRadio.checked)
       return parseFloat(discountSuggestedRadio.value) || 0;
-    if (discountNoneRadio.checked) return 0;
+    if (discountStilmasRadio.checked)
+      return parseFloat(discountStilmasRadio.value) || STILMAS_OSLA_DISCOUNT;
+
     if (discountOtherRadio.checked) {
       const custom = parseFloat(discountCustomInput.value || "0");
       if (isNaN(custom) || custom < 0 || custom > 100) {
@@ -162,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
-  discountNoneRadio.addEventListener("change", handleDiscountOptionChange);
+  discountStilmasRadio.addEventListener("change", handleDiscountOptionChange);
   discountOtherRadio.addEventListener("change", handleDiscountOptionChange);
 
   // Carica finiture dal backend (ASME BPE SF1 / SF4)
