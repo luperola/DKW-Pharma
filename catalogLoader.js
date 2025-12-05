@@ -198,6 +198,20 @@ const SIMPLE_SHEETS = [
   },
 ];
 
+// Fogli da cui leggere la lunghezza in mm per le ferrule
+const FERRULE_LENGTH_SHEETS = {
+  "Ferrule A (Long)": "Ferrule A (long)",
+  "Ferrule B (Medium)": "Ferrule B (medium)",
+  "Ferrule C (Short)": "Ferrule C (short)",
+};
+
+function findSheetName(wb, targetName) {
+  if (!targetName) return null;
+  if (wb.Sheets[targetName]) return targetName;
+  const targetLower = targetName.toLowerCase();
+  return wb.SheetNames.find((n) => n.toLowerCase() === targetLower) || null;
+}
+
 function loadSimpleFittingsCatalog() {
   try {
     if (!fs.existsSync(asmePath)) return [];
@@ -223,10 +237,13 @@ function loadSimpleFittingsCatalog() {
         const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
         const ND = formatDimension(mmRaw, inchRaw);
         if (!ND) continue;
-
         const isFerrule = def.itemType.startsWith("Ferrule");
+        const lengthSheetName = isFerrule
+          ? findSheetName(wb, FERRULE_LENGTH_SHEETS[def.itemType])
+          : null;
+        const lengthSheet = lengthSheetName ? wb.Sheets[lengthSheetName] : null;
         const lengthRaw = isFerrule
-          ? ws?.[`C${idx + 3}`]?.v ||
+          ? lengthSheet?.[`C${idx + 3}`]?.v ||
             pick(r, [
               "Length",
               "Lenght",
