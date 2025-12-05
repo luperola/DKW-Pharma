@@ -265,7 +265,25 @@ function loadSimpleFittingsCatalog() {
           const price = parseNum(pick(r, finish.fittingPriceKeys));
           if (price <= 0) continue;
 
-          const codeRaw = pick(r, finish.fittingCodeKeys);
+          let codeRaw = null;
+          if (isFerrule && lengthSheet) {
+            const ferruleRow = idx + 3;
+            const ferruleColumn =
+              finish.key === "ASME BPE SF1"
+                ? "D"
+                : finish.key === "ASME BPE SF4"
+                ? "F"
+                : null;
+
+            if (ferruleColumn) {
+              const ferruleCell = lengthSheet[`${ferruleColumn}${ferruleRow}`];
+              if (ferruleCell && ferruleCell.v != null) {
+                codeRaw = ferruleCell.v;
+              }
+            }
+          }
+
+          if (codeRaw == null) codeRaw = pick(r, finish.fittingCodeKeys);
           const code = codeRaw != null ? String(codeRaw).trim() : "";
           out.push({
             itemType: def.itemType,
