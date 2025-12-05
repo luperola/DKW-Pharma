@@ -214,9 +214,11 @@ function loadSimpleFittingsCatalog() {
 
       if (!sheetName) continue;
 
+      const ws = wb.Sheets[sheetName];
       const rows = sheetJSON(wb, sheetName);
 
-      for (const r of rows) {
+      for (let idx = 0; idx < rows.length; idx++) {
+        const r = rows[idx];
         const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
         const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
         const ND = formatDimension(mmRaw, inchRaw);
@@ -224,7 +226,8 @@ function loadSimpleFittingsCatalog() {
 
         const isFerrule = def.itemType.startsWith("Ferrule");
         const lengthRaw = isFerrule
-          ? pick(r, [
+          ? ws?.[`C${idx + 3}`]?.v ||
+            pick(r, [
               "Length",
               "Lenght",
               "Length mm",
