@@ -14,7 +14,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-
+app.use(
+  "/immagini",
+  express.static(path.join(__dirname, "immagini"), {
+    extensions: ["jpg", "jpeg"],
+  })
+);
 function safeLoadCatalog() {
   try {
     const loaded = loadCatalog();
@@ -98,6 +103,31 @@ app.get("/api/catalog/complex", (req, res) => {
   } catch (err) {
     console.error("Errore API fittings OD:", err);
     res.status(500).json({ error: "Catalogo non disponibile" });
+  }
+});
+
+// Lista immagini per "Other Items"
+app.get("/api/other-items/images", async (req, res) => {
+  try {
+    const imagesDir = path.join(__dirname, "immagini");
+    const files = await fs.promises.readdir(imagesDir);
+
+    const images = files
+      .filter((f) => /\.(jpe?g)$/i.test(f))
+      .sort((a, b) => a.localeCompare(b))
+      .map((file) => {
+        const parsed = path.parse(file);
+        return {
+          fileName: file,
+          label: parsed.name,
+          url: `/immagini/${encodeURIComponent(file)}`,
+        };
+      });
+
+    res.json({ images });
+  } catch (err) {
+    console.error("Errore lettura immagini other items:", err);
+    res.status(500).json({ error: "Impossibile leggere le immagini" });
   }
 });
 

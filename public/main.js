@@ -18,11 +18,7 @@ const ND_ITEMS = new Set([
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
-const OTHER_ITEMS = Array.from({ length: 9 }, (_, idx) => ({
-  id: `other-${idx + 1}`,
-  number: idx + 1,
-  label: `Immagine ${idx + 1}`,
-}));
+let otherItems = [];
 
 const STILMAS_OLSA_DISCOUNT = 51.87;
 
@@ -183,7 +179,15 @@ document.addEventListener("DOMContentLoaded", () => {
     otherItemsGrid.innerHTML = "";
     otherItemInputs.clear();
 
-    OTHER_ITEMS.forEach((item) => {
+    if (!otherItems.length) {
+      const empty = document.createElement("div");
+      empty.className = "col-12 text-center text-muted";
+      empty.textContent = "Nessuna immagine trovata nella cartella 'immagini'.";
+      otherItemsGrid.appendChild(empty);
+      return;
+    }
+
+    otherItems.forEach((item) => {
       const col = document.createElement("div");
       col.className = "col-12 col-md-6 col-lg-4 col-xl-3";
 
@@ -201,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const label = document.createElement("label");
       label.className = "form-check-label fw-semibold";
       label.htmlFor = checkbox.id;
-      label.textContent = `Other Item ${item.number}`;
+      label.textContent = item.label;
 
       header.appendChild(checkbox);
       header.appendChild(label);
@@ -210,10 +214,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const body = document.createElement("div");
       body.className = "card-body";
 
-      const placeholder = document.createElement("div");
-      placeholder.className = "other-item-img mb-2";
-      placeholder.textContent = item.number;
-      body.appendChild(placeholder);
+      const imgWrapper = document.createElement("div");
+      imgWrapper.className = "other-item-img mb-2";
+
+      if (item.url) {
+        const imgEl = document.createElement("img");
+        imgEl.src = item.url;
+        imgEl.alt = item.label;
+        imgWrapper.appendChild(imgEl);
+      } else {
+        imgWrapper.textContent = item.label;
+      }
+      body.appendChild(imgWrapper);
 
       const desc = document.createElement("div");
       desc.className = "small text-muted mb-2";
@@ -279,11 +291,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  async function loadOtherItemsFromServer() {
+    if (!otherItemsGrid) return;
+
+    otherItemsGrid.innerHTML = "";
+    const loading = document.createElement("div");
+    loading.className = "col-12 text-center text-muted";
+    loading.textContent = "Caricamento immagini...";
+    otherItemsGrid.appendChild(loading);
+
+    try {
+      const res = await fetch("/api/other-items/images");
+      if (!res.ok) throw new Error("Impossibile recuperare le immagini");
+      const data = await res.json();
+      otherItems = (data.images || []).map((img, idx) => ({
+        id: `other-${idx}-${img.fileName}`,
+        number: idx + 1,
+        label: img.label,
+        url: img.url,
+      }));
+    } catch (err) {
+      console.error("Errore caricamento Other Items:", err);
+      otherItems = [];
+    }
+
+    renderOtherItemsGrid();
+  }
+
   function addSelectedOtherItemsToTable() {
     const selected = [];
     const errors = [];
 
-    OTHER_ITEMS.forEach((item) => {
+    otherItems.forEach((item) => {
       const refs = otherItemInputs.get(item.id);
       if (!refs || !refs.checkbox.checked) return;
 
@@ -294,12 +333,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const dnVal = (refs.dnInput.value || "").trim();
 
       if (!qtyVal || qtyVal <= 0) {
-        errors.push(`Item ${item.number}: inserisci una quantità valida.`);
+        errors.push(`${item.label}: inserisci una quantità valida.`);
       }
       if (isNaN(priceVal) || priceVal < 0) {
-        errors.push(
-          `Item ${item.number}: inserisci un prezzo unitario valido.`
-        );
+        errors.push(`${item.label}: inserisci un prezzo unitario valido.`);
       }
 
       selected.push({ item, qty: qtyVal, price: priceVal, dn: dnVal });
@@ -317,12 +354,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const finishValue = finishSelect.value || "N/A";
 
     selected.forEach(({ item, qty, price, dn }) => {
+      const dnText = dn ? ` - DN ${dn}` : "";
       currentRows.push({
         finish: finishValue,
-        itemType: `Other Item ${item.number}`,
-        description: `${item.label} (n. ${item.number})${
-          dn ? ` - DN ${dn}` : ""
-        }`,
+        iitemType: `Other Item - ${item.label}`,
+        description: `${item.label}${dnText}`,
         code: "",
         quantity: qty,
         basePricePerPc: price,
@@ -335,6 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const refs = otherItemInputs.get(item.id);
       if (refs) {
         refs.checkbox.checked = false;
+        refs.dnInput.value = "";
         refs.qtyField.value = "";
         refs.priceField.value = "";
       }
@@ -834,7 +871,8 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore durante l'importazione.");
     }
   });
-  renderOtherItemsGrid();
+  addOtherItemsBtn.addEventListener("click", addSelectedOtherItemsToTable);
+  loadOtherItemsFromServer();
 });
 
 // Render tabella righe
