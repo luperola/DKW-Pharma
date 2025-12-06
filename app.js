@@ -4,6 +4,7 @@ import cors from "cors";
 import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 import { loadCatalog, FINISHES } from "./catalogLoader.js";
 import multer from "multer";
 
