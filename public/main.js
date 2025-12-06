@@ -18,7 +18,13 @@ const ND_ITEMS = new Set([
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
-const STILMAS_OSLA_DISCOUNT = 51.87;
+const OTHER_ITEMS = Array.from({ length: 9 }, (_, idx) => ({
+  id: `other-${idx + 1}`,
+  number: idx + 1,
+  label: `Immagine ${idx + 1}`,
+}));
+
+const STILMAS_OLSA_DISCOUNT = 51.87;
 
 function qs(id) {
   return document.getElementById(id);
@@ -66,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const itemTypeSelect = qs("itemType");
   const qtyInput = qs("qtyInput");
   const qtyUnitSpan = qs("qtyUnitSpan");
+  const qtyGroup = qs("qtyGroup");
 
   const ndGroup = qs("ndGroup");
   const ndSelect = qs("ndSelect");
@@ -76,6 +83,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const alloyGroup = qs("alloyGroup");
   const alloyInput = qs("alloyInput");
+
+  const otherItemsSection = qs("otherItemsSection");
+  const otherItemsGrid = qs("otherItemsGrid");
+  const addOtherItemsBtn = qs("addOtherItemsBtn");
+  const otherItemInputs = new Map();
 
   const addRowBtn = qs("addBtn");
   const exportBtn = qs("exportBtn");
@@ -164,6 +176,171 @@ document.addEventListener("DOMContentLoaded", () => {
     const percent = parts.length > 1 ? parts[1] : parts[0];
     const parsed = parseFloat(percent);
     return isNaN(parsed) ? 0 : parsed;
+  }
+
+  function renderOtherItemsGrid() {
+    if (!otherItemsGrid) return;
+    otherItemsGrid.innerHTML = "";
+    otherItemInputs.clear();
+
+    OTHER_ITEMS.forEach((item) => {
+      const col = document.createElement("div");
+      col.className = "col-12 col-md-6 col-lg-4 col-xl-3";
+
+      const card = document.createElement("div");
+      card.className = "card h-100 other-item-card";
+
+      const header = document.createElement("div");
+      header.className = "card-header d-flex align-items-center gap-2";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "form-check-input";
+      checkbox.id = `${item.id}-checkbox`;
+
+      const label = document.createElement("label");
+      label.className = "form-check-label fw-semibold";
+      label.htmlFor = checkbox.id;
+      label.textContent = `Other Item ${item.number}`;
+
+      header.appendChild(checkbox);
+      header.appendChild(label);
+      card.appendChild(header);
+
+      const body = document.createElement("div");
+      body.className = "card-body";
+
+      const placeholder = document.createElement("div");
+      placeholder.className = "other-item-img mb-2";
+      placeholder.textContent = item.number;
+      body.appendChild(placeholder);
+
+      const desc = document.createElement("div");
+      desc.className = "small text-muted mb-2";
+      desc.textContent = item.label;
+      body.appendChild(desc);
+
+      const dnLabel = document.createElement("label");
+      dnLabel.className = "form-label";
+      dnLabel.textContent = "DN";
+      dnLabel.htmlFor = `${item.id}-dn`;
+
+      const dnInput = document.createElement("input");
+      dnInput.type = "text";
+      dnInput.id = dnLabel.htmlFor;
+      dnInput.placeholder = "es. DN 25";
+      dnInput.className = "form-control form-control-sm";
+
+      body.appendChild(dnLabel);
+      body.appendChild(dnInput);
+
+      const qtyLabel = document.createElement("label");
+      qtyLabel.className = "form-label mt-2";
+      qtyLabel.textContent = "Qty";
+      qtyLabel.htmlFor = `${item.id}-qty`;
+
+      const qtyField = document.createElement("input");
+      qtyField.type = "number";
+      qtyField.min = "0";
+      qtyField.step = "1";
+      qtyField.placeholder = "0";
+      qtyField.id = qtyLabel.htmlFor;
+      qtyField.className = "form-control form-control-sm";
+
+      body.appendChild(qtyLabel);
+      body.appendChild(qtyField);
+
+      const priceLabel = document.createElement("label");
+      priceLabel.className = "form-label mt-2";
+      priceLabel.textContent = "Prezzo unitario (€ / pz)";
+      priceLabel.htmlFor = `${item.id}-price`;
+
+      const priceField = document.createElement("input");
+      priceField.type = "number";
+      priceField.step = "0.01";
+      priceField.min = "0";
+      priceField.placeholder = "0.00";
+      priceField.id = priceLabel.htmlFor;
+      priceField.className = "form-control form-control-sm";
+
+      body.appendChild(priceLabel);
+      body.appendChild(priceField);
+
+      card.appendChild(body);
+      col.appendChild(card);
+      otherItemsGrid.appendChild(col);
+
+      otherItemInputs.set(item.id, {
+        checkbox,
+        dnInput,
+        qtyField,
+        priceField,
+      });
+    });
+  }
+
+  function addSelectedOtherItemsToTable() {
+    const selected = [];
+    const errors = [];
+
+    OTHER_ITEMS.forEach((item) => {
+      const refs = otherItemInputs.get(item.id);
+      if (!refs || !refs.checkbox.checked) return;
+
+      const qtyVal = parseInt(refs.qtyField.value, 10);
+      const priceVal = parseFloat(
+        (refs.priceField.value || "0").replace(",", ".")
+      );
+      const dnVal = (refs.dnInput.value || "").trim();
+
+      if (!qtyVal || qtyVal <= 0) {
+        errors.push(`Item ${item.number}: inserisci una quantità valida.`);
+      }
+      if (isNaN(priceVal) || priceVal < 0) {
+        errors.push(
+          `Item ${item.number}: inserisci un prezzo unitario valido.`
+        );
+      }
+
+      selected.push({ item, qty: qtyVal, price: priceVal, dn: dnVal });
+    });
+
+    if (errors.length) {
+      alert(errors.join("\n"));
+      return;
+    }
+    if (!selected.length) {
+      alert("Seleziona almeno un Other Item.");
+      return;
+    }
+
+    const finishValue = finishSelect.value || "N/A";
+
+    selected.forEach(({ item, qty, price, dn }) => {
+      currentRows.push({
+        finish: finishValue,
+        itemType: `Other Item ${item.number}`,
+        description: `${item.label} (n. ${item.number})${
+          dn ? ` - DN ${dn}` : ""
+        }`,
+        code: "",
+        quantity: qty,
+        basePricePerPc: price,
+        pesoKgM: null,
+        alloySurchargePerKg: null,
+        size: dn || "",
+      });
+
+      // reset selections per ogni item aggiunto
+      const refs = otherItemInputs.get(item.id);
+      if (refs) {
+        refs.checkbox.checked = false;
+        refs.qtyField.value = "";
+        refs.priceField.value = "";
+      }
+    });
+
+    renderTable();
   }
 
   discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
@@ -346,7 +523,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cambia UI in base all'item scelto (Q.ty unità, Alloy abilitato solo Tubes, ND/OD)
   itemTypeSelect.addEventListener("change", () => {
     const itemType = itemTypeSelect.value;
+    const isOtherItem = itemType === "Other Items";
 
+    if (isOtherItem) {
+      otherItemsSection.classList.remove("d-none");
+      qtyGroup.classList.add("d-none");
+      ndGroup.classList.add("d-none");
+      od1Group.classList.add("d-none");
+      od2Group.classList.add("d-none");
+      alloyGroup.classList.add("d-none");
+    } else {
+      otherItemsSection.classList.add("d-none");
+      qtyGroup.classList.remove("d-none");
+      alloyGroup.classList.remove("d-none");
+    }
     // Q.ty unità
     if (itemType === "Tubes") {
       qtyUnitSpan.textContent = "(m)";
@@ -363,7 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // aggiorna ND / OD1-OD2
-    updateSizeOptions();
+    if (!isOtherItem) updateSizeOptions();
   });
 
   // Se cambia finitura, ricarico ND / OD1-OD2
@@ -376,6 +566,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const finish = finishSelect.value;
     const itemType = itemTypeSelect.value;
     const alloy = parseFloat(alloyInput.value ?? "0") || 0;
+    if (itemType === "Other Items") {
+      addSelectedOtherItemsToTable();
+      return;
+    }
 
     const prevND = ndSelect.value;
     const prevOD1 = od1Select.value;
@@ -640,6 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore durante l'importazione.");
     }
   });
+  renderOtherItemsGrid();
 });
 
 // Render tabella righe

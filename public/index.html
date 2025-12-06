@@ -42,6 +42,21 @@
       .col-qty {
         width: 110px;
       }
+      .other-item-img {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        aspect-ratio: 4 / 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #495057;
+      }
+      .other-item-card .form-label {
+        font-size: 0.8rem;
+      }
     </style>
   </head>
   <body>
@@ -76,6 +91,7 @@
                 <option value="Ferrule A (Long)">Ferrule A (Long)</option>
                 <option value="Ferrule B (Medium)">Ferrule B (Medium)</option>
                 <option value="Ferrule C (Short)">Ferrule C (Short)</option>
+                <option value="Other Items">Other Items</option>
               </select>
             </div>
 
@@ -211,6 +227,24 @@
       </div>
     </div>
 
+    <div class="card mt-3 d-none" id="otherItemsSection">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <h5 class="mb-0">Other Items</h5>
+            <div class="small-hint">
+              Seleziona uno o più articoli (1–9), indica DN, quantità e prezzo
+              unitario, poi aggiungili alla tabella.
+            </div>
+          </div>
+          <button id="addOtherItemsBtn" type="button" class="btn btn-primary">
+            Aggiungi selezionati
+          </button>
+        </div>
+        <div class="row g-3" id="otherItemsGrid"></div>
+      </div>
+    </div>
+
     <!-- MODALE EXPORT: sconto / trasporto -->
     <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -251,7 +285,7 @@
                   value="stilmas"
                 />
                 <label class="form-check-label" for="discountStilmasRadio">
-                  STILMAS / OSLA (51.87%)
+                  STILMAS / OLSA (51.87%)
                 </label>
               </div>
               <div class="form-check d-flex align-items-center gap-2">
