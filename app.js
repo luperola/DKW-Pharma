@@ -116,14 +116,11 @@ app.get("/api/other-items/images", async (req, res) => {
     const images = files
       .filter((f) => /\.(jpe?g)$/i.test(f))
       .sort((a, b) => a.localeCompare(b))
-      .map((file) => {
-        const parsed = path.parse(file);
-        return {
-          fileName: file,
-          label: parsed.name,
-          url: `/immagini/${encodeURIComponent(file)}`,
-        };
-      });
+      .map((file) => ({
+        fileName: file,
+        label: file,
+        url: `/immagini/${encodeURIComponent(file)}`,
+      }));
 
     res.json({ images });
   } catch (err) {

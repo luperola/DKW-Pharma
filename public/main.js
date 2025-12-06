@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     otherItems.forEach((item) => {
       const col = document.createElement("div");
-      col.className = "col-12 col-md-6 col-lg-4 col-xl-3";
+      col.className = "col-12";
 
       const card = document.createElement("div");
       card.className = "card h-100 other-item-card";
@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(header);
 
       const body = document.createElement("div");
-      body.className = "card-body";
+      body.className = "card-body d-flex flex-column align-items-center";
 
       const imgWrapper = document.createElement("div");
       imgWrapper.className = "other-item-img mb-2";
@@ -227,10 +227,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       body.appendChild(imgWrapper);
 
-      const desc = document.createElement("div");
-      desc.className = "small text-muted mb-2";
-      desc.textContent = item.label;
-      body.appendChild(desc);
+      const caption = document.createElement("div");
+      caption.className = "other-item-caption mb-2";
+      caption.textContent = item.fileName;
+      body.appendChild(caption);
 
       const dnLabel = document.createElement("label");
       dnLabel.className = "form-label";
@@ -307,7 +307,8 @@ document.addEventListener("DOMContentLoaded", () => {
       otherItems = (data.images || []).map((img, idx) => ({
         id: `other-${idx}-${img.fileName}`,
         number: idx + 1,
-        label: img.label,
+        label: img.fileName,
+        fileName: img.fileName,
         url: img.url,
       }));
     } catch (err) {
