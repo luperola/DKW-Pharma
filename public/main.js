@@ -23,6 +23,10 @@ const otherItemsById = new Map();
 const otherItemOptions = new Map(); // value -> { item, option }
 const OTHER_ITEM_PREFIX = "other-item:";
 
+function isCustomOtherItemType(value) {
+  return typeof value === "string" && value.startsWith(OTHER_ITEM_PREFIX);
+}
+
 const STILMAS_OLSA_DISCOUNT = 51.87;
 
 function qs(id) {
