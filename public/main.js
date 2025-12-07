@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(header);
 
       const body = document.createElement("div");
-      body.className = "card-body d-flex flex-column align-items-center";
+      body.className = "card-body d-flex flex-column align-items-start";
 
       const imgWrapper = document.createElement("div");
       imgWrapper.className = "other-item-img mb-2";
@@ -232,61 +232,12 @@ document.addEventListener("DOMContentLoaded", () => {
       caption.textContent = item.fileName;
       body.appendChild(caption);
 
-      const dnLabel = document.createElement("label");
-      dnLabel.className = "form-label";
-      dnLabel.textContent = "DN";
-      dnLabel.htmlFor = `${item.id}-dn`;
-
-      const dnInput = document.createElement("input");
-      dnInput.type = "text";
-      dnInput.id = dnLabel.htmlFor;
-      dnInput.placeholder = "es. DN 25";
-      dnInput.className = "form-control form-control-sm";
-
-      body.appendChild(dnLabel);
-      body.appendChild(dnInput);
-
-      const qtyLabel = document.createElement("label");
-      qtyLabel.className = "form-label mt-2";
-      qtyLabel.textContent = "Qty";
-      qtyLabel.htmlFor = `${item.id}-qty`;
-
-      const qtyField = document.createElement("input");
-      qtyField.type = "number";
-      qtyField.min = "0";
-      qtyField.step = "1";
-      qtyField.placeholder = "0";
-      qtyField.id = qtyLabel.htmlFor;
-      qtyField.className = "form-control form-control-sm";
-
-      body.appendChild(qtyLabel);
-      body.appendChild(qtyField);
-
-      const priceLabel = document.createElement("label");
-      priceLabel.className = "form-label mt-2";
-      priceLabel.textContent = "Prezzo unitario (€ / pz)";
-      priceLabel.htmlFor = `${item.id}-price`;
-
-      const priceField = document.createElement("input");
-      priceField.type = "number";
-      priceField.step = "0.01";
-      priceField.min = "0";
-      priceField.placeholder = "0.00";
-      priceField.id = priceLabel.htmlFor;
-      priceField.className = "form-control form-control-sm";
-
-      body.appendChild(priceLabel);
-      body.appendChild(priceField);
-
       card.appendChild(body);
       col.appendChild(card);
       otherItemsGrid.appendChild(col);
 
       otherItemInputs.set(item.id, {
         checkbox,
-        dnInput,
-        qtyField,
-        priceField,
       });
     });
   }
@@ -321,32 +272,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function addSelectedOtherItemsToTable() {
     const selected = [];
-    const errors = [];
 
     otherItems.forEach((item) => {
       const refs = otherItemInputs.get(item.id);
       if (!refs || !refs.checkbox.checked) return;
 
-      const qtyVal = parseInt(refs.qtyField.value, 10);
-      const priceVal = parseFloat(
-        (refs.priceField.value || "0").replace(",", ".")
-      );
-      const dnVal = (refs.dnInput.value || "").trim();
-
-      if (!qtyVal || qtyVal <= 0) {
-        errors.push(`${item.label}: inserisci una quantità valida.`);
-      }
-      if (isNaN(priceVal) || priceVal < 0) {
-        errors.push(`${item.label}: inserisci un prezzo unitario valido.`);
-      }
-
-      selected.push({ item, qty: qtyVal, price: priceVal, dn: dnVal });
+      selected.push({ item });
     });
 
-    if (errors.length) {
-      alert(errors.join("\n"));
-      return;
-    }
     if (!selected.length) {
       alert("Seleziona almeno un Other Item.");
       return;
@@ -354,18 +287,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const finishValue = finishSelect.value || "N/A";
 
-    selected.forEach(({ item, qty, price, dn }) => {
-      const dnText = dn ? ` - DN ${dn}` : "";
+    selected.forEach(({ item }) => {
       currentRows.push({
         finish: finishValue,
-        iitemType: `Other Item - ${item.label}`,
-        description: `${item.label}${dnText}`,
+        itemType: `Other Item - ${item.label}`,
+        description: `${item.label}`,
         code: "",
-        quantity: qty,
-        basePricePerPc: price,
+        quantity: 1,
+        basePricePerPc: 0,
         pesoKgM: null,
         alloySurchargePerKg: null,
-        size: dn || "",
+        size: "",
       });
 
       // reset selections per ogni item aggiunto
@@ -850,7 +782,6 @@ document.addEventListener("DOMContentLoaded", () => {
           code: r.code || "",
           quantity: r.quantity || 0,
         };
-
         if (isTube) {
           row.basePricePerM = r.base || r.unitPrice || 0;
           row.pesoKgM = r.peso || 0;
@@ -860,11 +791,9 @@ document.addEventListener("DOMContentLoaded", () => {
           row.pesoKgM = null;
           row.alloySurchargePerKg = null;
         }
-
         row.size = ""; // ND/OD1-OD2 non recuperabili dall'Excel
         return row;
       });
-
       renderTable();
       importFile.value = "";
     } catch (err) {
@@ -903,12 +832,25 @@ function renderTable() {
     tr.appendChild(colCode);
 
     const colBase = document.createElement("td");
+    const isTube = row.itemType === "Tubes";
     colBase.classList.add("text-end");
-    const base =
-      row.itemType === "Tubes"
-        ? row.basePricePerM ?? 0
-        : row.basePricePerPc ?? 0;
-    colBase.textContent = base.toFixed(2);
+    if (isTube) {
+      const base = row.basePricePerM ?? 0;
+      colBase.textContent = base.toFixed(2);
+    } else {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.step = "0.01";
+      input.min = "0";
+      input.className = "form-control form-control-sm text-end";
+      input.value = (row.basePricePerPc ?? 0).toFixed(2);
+      input.addEventListener("change", () => {
+        const newVal = parseFloat(input.value.replace(",", "."));
+        row.basePricePerPc = isNaN(newVal) || newVal < 0 ? 0 : newVal;
+        renderTable();
+      });
+      colBase.appendChild(input);
+    }
     tr.appendChild(colBase);
 
     const colAlloy = document.createElement("td");
