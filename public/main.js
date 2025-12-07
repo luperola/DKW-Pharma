@@ -19,6 +19,9 @@ const ND_ITEMS = new Set([
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
 let otherItems = [];
+const otherItemsById = new Map();
+const otherItemOptions = new Map(); // value -> { item, option }
+const OTHER_ITEM_PREFIX = "other-item:";
 
 const STILMAS_OLSA_DISCOUNT = 51.87;
 
@@ -239,7 +242,49 @@ document.addEventListener("DOMContentLoaded", () => {
       otherItemInputs.set(item.id, {
         checkbox,
       });
+
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          addOtherItemOption(item);
+        } else {
+          removeOtherItemOption(item.id);
+        }
+      });
     });
+  }
+
+  function addOtherItemOption(item) {
+    const value = `${OTHER_ITEM_PREFIX}${item.id}`;
+    if (otherItemOptions.has(value)) return;
+
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = item.label;
+
+    const otherItemsOption = itemTypeSelect.querySelector(
+      'option[value="Other Items"]'
+    );
+    if (otherItemsOption?.parentElement) {
+      otherItemsOption.parentElement.insertBefore(option, otherItemsOption);
+    } else {
+      itemTypeSelect.appendChild(option);
+    }
+
+    otherItemOptions.set(value, { item, option });
+  }
+
+  function removeOtherItemOption(itemId) {
+    const value = `${OTHER_ITEM_PREFIX}${itemId}`;
+    const entry = otherItemOptions.get(value);
+    if (!entry) return;
+
+    entry.option.remove();
+    otherItemOptions.delete(value);
+
+    if (itemTypeSelect.value === value) {
+      itemTypeSelect.value = "";
+      itemTypeSelect.dispatchEvent(new Event("change"));
+    }
   }
 
   async function loadOtherItemsFromServer() {
@@ -262,55 +307,44 @@ document.addEventListener("DOMContentLoaded", () => {
         fileName: img.fileName,
         url: img.url,
       }));
+      otherItemsById.clear();
+      otherItems.forEach((item) => otherItemsById.set(item.id, item));
     } catch (err) {
       console.error("Errore caricamento Other Items:", err);
       otherItems = [];
+    }
+
+    // Rimuove eventuali opzioni ormai non più disponibili
+    for (const [value, { item }] of Array.from(otherItemOptions.entries())) {
+      if (!otherItemsById.has(item.id)) {
+        removeOtherItemOption(item.id);
+      }
     }
 
     renderOtherItemsGrid();
   }
 
   function addSelectedOtherItemsToTable() {
-    const selected = [];
+    let added = 0;
 
     otherItems.forEach((item) => {
       const refs = otherItemInputs.get(item.id);
       if (!refs || !refs.checkbox.checked) return;
 
-      selected.push({ item });
+      addOtherItemOption(item);
+      added++;
     });
 
-    if (!selected.length) {
+    if (!added) {
       alert("Seleziona almeno un Other Item.");
-      return;
+      return false;
     }
 
-    const finishValue = finishSelect.value || "N/A";
+    alert(
+      "L'Other Item selezionato è stato aggiunto nella lista 'Item'. Selezionalo per compilare quantità e DN."
+    );
 
-    selected.forEach(({ item }) => {
-      currentRows.push({
-        finish: finishValue,
-        itemType: `Other Item - ${item.label}`,
-        description: `${item.label}`,
-        code: "",
-        quantity: 1,
-        basePricePerPc: 0,
-        pesoKgM: null,
-        alloySurchargePerKg: null,
-        size: "",
-      });
-
-      // reset selections per ogni item aggiunto
-      const refs = otherItemInputs.get(item.id);
-      if (refs) {
-        refs.checkbox.checked = false;
-        refs.dnInput.value = "";
-        refs.qtyField.value = "";
-        refs.priceField.value = "";
-      }
-    });
-
-    renderTable();
+    return true;
   }
 
   discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
@@ -359,6 +393,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function updateSizeOptions() {
     const finish = finishSelect.value;
     const itemType = itemTypeSelect.value;
+
+    if (isCustomOtherItemType(itemType)) {
+      ndGroup.classList.remove("d-none");
+      od1Group.classList.add("d-none");
+      od2Group.classList.add("d-none");
+      return;
+    }
 
     const previousND = ndSelect.value.trim();
     const previousOD1 = od1Select.value.trim();
@@ -494,6 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
   itemTypeSelect.addEventListener("change", () => {
     const itemType = itemTypeSelect.value;
     const isOtherItem = itemType === "Other Items";
+    const isCustomOtherItem = isCustomOtherItemType(itemType);
 
     if (isOtherItem) {
       otherItemsSection.classList.remove("d-none");
@@ -502,6 +544,13 @@ document.addEventListener("DOMContentLoaded", () => {
       od1Group.classList.add("d-none");
       od2Group.classList.add("d-none");
       alloyGroup.classList.add("d-none");
+    } else if (isCustomOtherItem) {
+      otherItemsSection.classList.add("d-none");
+      qtyGroup.classList.remove("d-none");
+      ndGroup.classList.remove("d-none");
+      od1Group.classList.add("d-none");
+      od2Group.classList.add("d-none");
+      alloyGroup.classList.remove("d-none");
     } else {
       otherItemsSection.classList.add("d-none");
       qtyGroup.classList.remove("d-none");
@@ -540,6 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
       addSelectedOtherItemsToTable();
       return;
     }
+    const isCustomOtherItem = isCustomOtherItemType(itemType);
 
     const prevND = ndSelect.value;
     const prevOD1 = od1Select.value;
@@ -569,6 +619,37 @@ document.addEventListener("DOMContentLoaded", () => {
     let nd = "";
     let od1 = "";
     let od2 = "";
+
+    if (isCustomOtherItem) {
+      nd = ndSelect.value.trim();
+      if (!nd) {
+        alert("Seleziona il DN.");
+        return;
+      }
+      const otherEntry = otherItemOptions.get(itemType);
+      if (!otherEntry) {
+        alert("Seleziona un Other Item valido.");
+        return;
+      }
+
+      sizeText = nd;
+
+      currentRows.push({
+        finish,
+        itemType: otherEntry.item.label,
+        description: `${otherEntry.item.label} ${finish} ${sizeText}`,
+        code: "",
+        quantity: qty,
+        basePricePerPc: 0,
+        pesoKgM: null,
+        alloySurchargePerKg: null,
+        size: sizeText,
+      });
+
+      renderTable();
+      ndSelect.value = prevND;
+      return;
+    }
 
     if (itemType === "Tubes") {
       nd = ndSelect.value.trim();
