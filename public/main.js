@@ -547,18 +547,15 @@ document.addEventListener("DOMContentLoaded", () => {
       ndGroup.classList.add("d-none");
       od1Group.classList.add("d-none");
       od2Group.classList.add("d-none");
-      alloyGroup.classList.add("d-none");
     } else if (isCustomOtherItem) {
       otherItemsSection.classList.add("d-none");
       qtyGroup.classList.remove("d-none");
       ndGroup.classList.remove("d-none");
       od1Group.classList.add("d-none");
       od2Group.classList.add("d-none");
-      alloyGroup.classList.remove("d-none");
     } else {
       otherItemsSection.classList.add("d-none");
       qtyGroup.classList.remove("d-none");
-      alloyGroup.classList.remove("d-none");
     }
     // Q.ty unità
     if (itemType === "Tubes") {
@@ -569,8 +566,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Alloy solo Tubes
     if (itemType === "Tubes") {
+      alloyGroup.classList.remove("d-none");
       alloyInput.disabled = false;
     } else {
+      alloyGroup.classList.add("d-none");
       alloyInput.disabled = true;
       alloyInput.value = "";
     }
@@ -919,23 +918,8 @@ function renderTable() {
     const colBase = document.createElement("td");
     const isTube = row.itemType === "Tubes";
     colBase.classList.add("text-end");
-    if (isTube) {
-      const base = row.basePricePerM ?? 0;
-      colBase.textContent = base.toFixed(2);
-    } else {
-      const input = document.createElement("input");
-      input.type = "number";
-      input.step = "0.01";
-      input.min = "0";
-      input.className = "form-control form-control-sm text-end";
-      input.value = (row.basePricePerPc ?? 0).toFixed(2);
-      input.addEventListener("change", () => {
-        const newVal = parseFloat(input.value.replace(",", "."));
-        row.basePricePerPc = isNaN(newVal) || newVal < 0 ? 0 : newVal;
-        renderTable();
-      });
-      colBase.appendChild(input);
-    }
+    const base = isTube ? row.basePricePerM ?? 0 : row.basePricePerPc ?? 0;
+    colBase.textContent = base.toFixed(2);
     tr.appendChild(colBase);
 
     const colAlloy = document.createElement("td");
