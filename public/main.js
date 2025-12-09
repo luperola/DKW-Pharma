@@ -196,10 +196,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     otherItems.forEach((item) => {
       const col = document.createElement("div");
-      col.className = "col-12";
+      col.className = "col-12 col-sm-6 col-lg-4 col-xl-3 d-flex";
 
       const card = document.createElement("div");
-      card.className = "card h-100 other-item-card";
+      card.className = "card h-100 other-item-card w-100";
 
       const header = document.createElement("div");
       header.className = "card-header d-flex align-items-center gap-2";
