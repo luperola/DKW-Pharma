@@ -15,6 +15,8 @@ const ND_ITEMS = new Set([
   "Ferrule C (Short)",
 ]);
 
+const FERRULE_SPECIAL_ND = new Set(['1/4"', '3/8"']);
+
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
@@ -460,6 +462,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
+        if (itemType.startsWith("Ferrule")) {
+          FERRULE_SPECIAL_ND.forEach((ndVal) => ndSet.add(ndVal));
+        }
         const ndValues = Array.from(ndSet)
           .filter(Boolean)
           .sort(sortByNumericString);
@@ -668,6 +673,11 @@ document.addEventListener("DOMContentLoaded", () => {
       nd = ndSelect.value.trim();
       if (!nd) {
         alert("Seleziona il ND.");
+        return;
+      }
+      if (itemType.startsWith("Ferrule") && FERRULE_SPECIAL_ND.has(nd)) {
+        alert('Tutti i Ferrule da 1/4" e 3/8" sono quotati su richiesta');
+        ndSelect.value = prevND;
         return;
       }
       endpoint = "/api/catalog/simple";

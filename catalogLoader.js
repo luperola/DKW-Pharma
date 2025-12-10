@@ -205,6 +205,11 @@ const FERRULE_LENGTH_SHEETS = {
   "Ferrule C (Short)": "Ferrule C (short)",
 };
 
+const FERRULE_PRICE_COLUMNS = {
+  "ASME BPE SF1": "E", // prezzo in €/pz su colonna E del foglio lunghezze
+  "ASME BPE SF4": "G", // prezzo in €/pz su colonna G del foglio lunghezze
+};
+
 function findSheetName(wb, targetName) {
   if (!targetName) return null;
   if (wb.Sheets[targetName]) return targetName;
@@ -262,12 +267,21 @@ function loadSimpleFittingsCatalog() {
           def.itemType === "Clamps" ? parseNum(flangeSizeRaw) : null;
 
         for (const finish of FINISHES) {
-          const price = parseNum(pick(r, finish.fittingPriceKeys));
+          let priceRaw = null;
+          if (isFerrule && lengthSheet && ferruleRow) {
+            const priceColumn = FERRULE_PRICE_COLUMNS[finish.key];
+            if (priceColumn) {
+              priceRaw = lengthSheet[`${priceColumn}${ferruleRow}`]?.v ?? null;
+            }
+          }
+
+          if (priceRaw == null) priceRaw = pick(r, finish.fittingPriceKeys);
+
+          const price = parseNum(priceRaw);
           if (price <= 0) continue;
 
           let codeRaw = null;
           if (isFerrule && lengthSheet) {
-            const ferruleRow = idx + 3;
             const ferruleColumn =
               finish.key === "ASME BPE SF1"
                 ? "D"
