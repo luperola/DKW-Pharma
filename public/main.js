@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const suggested = getSuggestedDiscount(totalValue);
     discountSuggestedValue.textContent = `${suggested.toFixed(2)}%`;
     discountSuggestedRadio.value = suggested.toString();
-    discountStilmasRadio.value = STILMAS_OSLA_DISCOUNT.toString();
+    discountStilmasRadio.value = STILMAS_OLSA_DISCOUNT.toString();
 
     if (!fileNameInput.value) fileNameInput.value = getDefaultFileName();
     discountSuggestedRadio.checked = true;
@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (discountSuggestedRadio.checked)
       return parseFloat(discountSuggestedRadio.value) || 0;
     if (discountStilmasRadio.checked)
-      return parseFloat(discountStilmasRadio.value) || STILMAS_OSLA_DISCOUNT;
+      return parseFloat(discountStilmasRadio.value) || STILMAS_OLSA_DISCOUNT;
 
     if (discountOtherRadio.checked) {
       const custom = parseFloat(discountCustomInput.value || "0");
