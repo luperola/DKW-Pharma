@@ -247,6 +247,7 @@ function loadSimpleFittingsCatalog() {
           ? findSheetName(wb, FERRULE_LENGTH_SHEETS[def.itemType])
           : null;
         const lengthSheet = lengthSheetName ? wb.Sheets[lengthSheetName] : null;
+        const ferruleRow = isFerrule && lengthSheet ? idx + 3 : null;
         const lengthRaw = isFerrule
           ? lengthSheet?.[`C${idx + 3}`]?.v ||
             pick(r, [
@@ -268,7 +269,7 @@ function loadSimpleFittingsCatalog() {
 
         for (const finish of FINISHES) {
           let priceRaw = null;
-          if (isFerrule && lengthSheet && ferruleRow) {
+          if (isFerrule && lengthSheet && ferruleRow != null) {
             const priceColumn = FERRULE_PRICE_COLUMNS[finish.key];
             if (priceColumn) {
               priceRaw = lengthSheet[`${priceColumn}${ferruleRow}`]?.v ?? null;
@@ -281,7 +282,7 @@ function loadSimpleFittingsCatalog() {
           if (price <= 0) continue;
 
           let codeRaw = null;
-          if (isFerrule && lengthSheet) {
+          if (isFerrule && lengthSheet && ferruleRow != null) {
             const ferruleColumn =
               finish.key === "ASME BPE SF1"
                 ? "D"
