@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const dataDir = path.join(__dirname, "data");
 const asmePath = path.join(dataDir, "ASME_BPE.xlsx");
 const teesReducersPath = path.join(dataDir, "Tees and reducers.xlsx");
+export const BPE_DIRECT_FINISH = "BPE Direct SF1";
 
 // ---------- utils comuni ----------
 
@@ -150,6 +151,47 @@ function loadTubesCatalog() {
   }
 }
 
+function loadBpeDirectTubesCatalog() {
+  try {
+    if (!fs.existsSync(asmePath)) return [];
+    const wb = xlsx.readFile(asmePath);
+
+    const sheetName =
+      BPE_DIRECT_SHEET_NAMES.find((n) => findSheetName(wb, n)) ||
+      wb.SheetNames.find((n) => n.toLowerCase().includes("direct"));
+
+    if (!sheetName) return [];
+
+    const rows = sheetJSON(wb, sheetName);
+    const out = [];
+
+    for (const r of rows) {
+      const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
+      const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+      const ND = formatDimension(mmRaw, inchRaw);
+      if (!ND) continue;
+      const codeRaw = pick(r, ["Order Code"]);
+      const price = parseNum(pick(r, ["Price in € / m", "Price €/m"]));
+      const code = codeRaw != null ? String(codeRaw).trim() : "";
+      out.push({
+        itemType: "Tubes",
+        finish: BPE_DIRECT_FINISH,
+        ND,
+        code,
+        pesoKgM: 0,
+        pricePerM: price,
+      });
+    }
+    return out;
+  } catch (err) {
+    console.error(
+      "Errore nel caricamento del catalogo Tube BPE Direct SF1:",
+      err
+    );
+    return [];
+  }
+}
+
 // ---------- FITTINGS SEMPLICI (solo ND) ----------
 // Elbows 90°, Elbows 45°, End Caps, Ferrule A/B/C
 
@@ -209,6 +251,8 @@ const FERRULE_PRICE_COLUMNS = {
   "ASME BPE SF1": "E", // prezzo in €/pz su colonna E del foglio lunghezze
   "ASME BPE SF4": "G", // prezzo in €/pz su colonna G del foglio lunghezze
 };
+
+const BPE_DIRECT_SHEET_NAMES = ["Tube BPE Direct - SF1", "Tube BPE Direct SF1"];
 
 function findSheetName(wb, targetName) {
   if (!targetName) return null;
@@ -406,7 +450,7 @@ function loadComplexCatalog() {
 
 export function loadCatalog() {
   try {
-    const tubes = loadTubesCatalog();
+    const tubes = [...loadTubesCatalog(), ...loadBpeDirectTubesCatalog()];
     const simple = loadSimpleFittingsCatalog();
     const complex = loadComplexCatalog();
 

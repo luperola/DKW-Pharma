@@ -4,6 +4,8 @@
 let currentRows = [];
 
 // Item che usano solo ND
+const BPE_DIRECT_FINISH = "BPE Direct SF1";
+const BPE_DIRECT_ITEM_TYPE = "Tube BPE Direct SF1";
 const ND_ITEMS = new Set([
   "Tubes",
   "Elbows 90°",
@@ -15,7 +17,14 @@ const ND_ITEMS = new Set([
   "Ferrule C (Short)",
 ]);
 
+const TUBE_ITEMS = new Set(["Tubes", BPE_DIRECT_ITEM_TYPE]);
+
 const FERRULE_SPECIAL_ND = new Set(['1/4"', '3/8"']);
+const BPE_DIRECT_FORBIDDEN_ND = new Set([
+  '6.35 mm (1/4")',
+  '9.53 mm (3/8")',
+  '12.7 mm (1/2")',
+]);
 
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
@@ -50,12 +59,12 @@ function roundToDecimals(value, decimals) {
 }
 
 function computeRowUnitPrice(row) {
-  const base =
-    row.itemType === "Tubes"
-      ? Number(row.basePricePerM || 0)
-      : Number(row.basePricePerPc || 0);
+  const isTubeItem = TUBE_ITEMS.has(row.itemType);
+  const base = isTubeItem
+    ? Number(row.basePricePerM || 0)
+    : Number(row.basePricePerPc || 0);
 
-  if (row.itemType !== "Tubes") return base;
+  if (!isTubeItem) return base;
 
   const peso = roundToDecimals(row.pesoKgM || 0, 3);
   const asKg = Number(row.alloySurchargePerKg || 0);
@@ -94,6 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const addOtherItemsBtn = qs("addOtherItemsBtn");
   const otherItemInputs = new Map();
 
+  const bpeDirectBtn = qs("bpeDirectBtn");
+
   const addRowBtn = qs("addBtn");
   const exportBtn = qs("exportBtn");
   const importBtn = qs("importBtn");
@@ -118,6 +129,63 @@ document.addEventListener("DOMContentLoaded", () => {
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const dd = String(today.getDate()).padStart(2, "0");
     return `Offerta_${yyyy}-${mm}-${dd}`;
+  }
+
+  function upsertOptionAtStart(
+    select,
+    value,
+    label,
+    { afterPlaceholder } = {}
+  ) {
+    const existing = Array.from(select.options).find(
+      (opt) => opt.value === value
+    );
+    if (existing) {
+      existing.remove();
+    }
+
+    const opt = new Option(label, value);
+    const hasPlaceholder = afterPlaceholder && select.options[0]?.value === "";
+    const insertIndex = hasPlaceholder ? 1 : 0;
+    select.insertBefore(opt, select.options[insertIndex] || null);
+  }
+
+  function ensureBpeDirectFinishOption() {
+    upsertOptionAtStart(finishSelect, BPE_DIRECT_FINISH, BPE_DIRECT_FINISH);
+  }
+
+  function ensureBpeDirectItemOption() {
+    upsertOptionAtStart(
+      itemTypeSelect,
+      BPE_DIRECT_ITEM_TYPE,
+      BPE_DIRECT_ITEM_TYPE,
+      { afterPlaceholder: true }
+    );
+  }
+
+  function isBpeDirectContext() {
+    return (
+      finishSelect.value === BPE_DIRECT_FINISH ||
+      itemTypeSelect.value === BPE_DIRECT_ITEM_TYPE
+    );
+  }
+
+  function activateBpeDirectPreset() {
+    ensureBpeDirectFinishOption();
+    ensureBpeDirectItemOption();
+    finishSelect.value = BPE_DIRECT_FINISH;
+    itemTypeSelect.value = BPE_DIRECT_ITEM_TYPE;
+    itemTypeSelect.dispatchEvent(new Event("change"));
+    updateSizeOptions();
+  }
+
+  function warnIfBpeDirectForbidden(ndValue) {
+    if (isBpeDirectContext() && BPE_DIRECT_FORBIDDEN_ND.has(ndValue)) {
+      alert("Il diametro scelto non è disponibile nella versione BPE Direct.");
+      ndSelect.value = "";
+      return true;
+    }
+    return false;
   }
 
   function computeOfferTotal(rows) {
@@ -356,6 +424,9 @@ document.addEventListener("DOMContentLoaded", () => {
   discountSuggestedRadio.addEventListener("change", handleDiscountOptionChange);
   discountStilmasRadio.addEventListener("change", handleDiscountOptionChange);
   discountOtherRadio.addEventListener("change", handleDiscountOptionChange);
+  if (bpeDirectBtn) {
+    bpeDirectBtn.addEventListener("click", activateBpeDirectPreset);
+  }
 
   // Carica finiture dal backend (ASME BPE SF1 / SF4)
   fetch("/api/catalog/finishes")
@@ -426,7 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      if (itemType === "Tubes") {
+      if (TUBE_ITEMS.has(itemType)) {
         // Tubes -> ND da /api/catalog/tubes
         const res = await fetch(
           `/api/catalog/tubes?finish=${encodeURIComponent(finish)}`
@@ -534,7 +605,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore nel caricamento dei diametri dal catalogo.");
     }
   }
-
   // Popola OD2 quando scelgo OD1
   od1Select.addEventListener("change", () => {
     populateOd2Options(od1Select.value);
@@ -545,7 +615,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const itemType = itemTypeSelect.value;
     const isOtherItem = itemType === "Other Items";
     const isCustomOtherItem = isCustomOtherItemType(itemType);
-
     if (isOtherItem) {
       otherItemsSection.classList.remove("d-none");
       qtyGroup.classList.add("d-none");
@@ -563,14 +632,13 @@ document.addEventListener("DOMContentLoaded", () => {
       qtyGroup.classList.remove("d-none");
     }
     // Q.ty unità
-    if (itemType === "Tubes") {
+    if (TUBE_ITEMS.has(itemType)) {
       qtyUnitSpan.textContent = "(m)";
     } else {
       qtyUnitSpan.textContent = "(pcs)";
     }
-
     // Alloy solo Tubes
-    if (itemType === "Tubes") {
+    if (TUBE_ITEMS.has(itemType)) {
       alloyGroup.classList.remove("d-none");
       alloyInput.disabled = false;
     } else {
@@ -585,7 +653,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Se cambia finitura, ricarico ND / OD1-OD2
   finishSelect.addEventListener("change", () => {
+    if (finishSelect.value === BPE_DIRECT_FINISH) {
+      ensureBpeDirectItemOption();
+    }
     updateSizeOptions();
+  });
+
+  ndSelect.addEventListener("change", () => {
+    const ndValue = ndSelect.value.trim();
+    if (ndValue) warnIfBpeDirectForbidden(ndValue);
   });
 
   // Aggiungi riga
@@ -593,6 +669,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const finish = finishSelect.value;
     const itemType = itemTypeSelect.value;
     const alloy = parseFloat(alloyInput.value ?? "0") || 0;
+    const isBpeDirect =
+      finish === BPE_DIRECT_FINISH || itemType === BPE_DIRECT_ITEM_TYPE;
     if (itemType === "Other Items") {
       addSelectedOtherItemsToTable();
       return;
@@ -608,7 +686,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isNaN(qty)) qty = 0;
 
     if (!finish) {
-      alert("Seleziona la finitura (ASME BPE SF1 o SF4).");
+      alert("Seleziona la finitura (ASME BPE).");
       return;
     }
     if (!itemType) {
@@ -659,10 +737,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (itemType === "Tubes") {
+    if (TUBE_ITEMS.has(itemType)) {
       nd = ndSelect.value.trim();
       if (!nd) {
-        alert("Seleziona il ND per Tubes.");
+        alert("Seleziona il DN per il tubo.");
+        return;
+      }
+      if (isBpeDirect && warnIfBpeDirectForbidden(nd)) {
+        ndSelect.value = prevND;
         return;
       }
       endpoint = "/api/catalog/tubes";
@@ -766,7 +848,7 @@ document.addEventListener("DOMContentLoaded", () => {
         quantity: qty,
       };
 
-      if (itemType === "Tubes") {
+      if (TUBE_ITEMS.has(itemType)) {
         row.basePricePerM = catItem.pricePerM || 0;
         row.pesoKgM = catItem.pesoKgM || 0;
         row.alloySurchargePerKg = alloy || 0;
@@ -868,10 +950,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const rows = data.rows || [];
 
       currentRows = rows.map((r) => {
-        const isTube = r.itemType === "Tubes";
+        const isTube = TUBE_ITEMS.has(r.itemType);
         const row = {
           finish: "", // non ricostruibile dall'Excel
-          itemType: isTube ? "Tubes" : "Imported",
+          itemType: isTube ? r.itemType : "Imported",
           description: r.description || "",
           code: r.code || "",
           quantity: r.quantity || 0,

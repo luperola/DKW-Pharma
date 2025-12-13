@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { loadCatalog, FINISHES } from "./catalogLoader.js";
+import { loadCatalog, FINISHES, BPE_DIRECT_FINISH } from "./catalogLoader.js";
 import multer from "multer";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,7 +50,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Tutte le finiture disponibili
 app.get("/api/catalog/finishes", (req, res) => {
-  res.json({ finishes: FINISHES.map((f) => f.key) });
+  const baseFinishes = FINISHES.map((f) => f.key);
+  const finishes = baseFinishes.includes(BPE_DIRECT_FINISH)
+    ? baseFinishes
+    : [BPE_DIRECT_FINISH, ...baseFinishes];
+  res.json({ finishes });
 });
 
 // Tubes (solo ND, finish obbligatoria per filtrare bene)
