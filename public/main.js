@@ -170,6 +170,20 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  function updateAlloyVisibility() {
+    const itemType = itemTypeSelect.value;
+    const alloyEnabled = TUBE_ITEMS.has(itemType) && !isBpeDirectContext();
+
+    if (alloyEnabled) {
+      alloyGroup.classList.remove("d-none");
+      alloyInput.disabled = false;
+    } else {
+      alloyGroup.classList.add("d-none");
+      alloyInput.disabled = true;
+      alloyInput.value = "";
+    }
+  }
+
   function activateBpeDirectPreset() {
     ensureBpeDirectFinishOption();
     ensureBpeDirectItemOption();
@@ -637,15 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       qtyUnitSpan.textContent = "(pcs)";
     }
-    // Alloy solo Tubes
-    if (TUBE_ITEMS.has(itemType)) {
-      alloyGroup.classList.remove("d-none");
-      alloyInput.disabled = false;
-    } else {
-      alloyGroup.classList.add("d-none");
-      alloyInput.disabled = true;
-      alloyInput.value = "";
-    }
+    updateAlloyVisibility();
 
     // aggiorna ND / OD1-OD2
     if (!isOtherItem) updateSizeOptions();
@@ -656,6 +662,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (finishSelect.value === BPE_DIRECT_FINISH) {
       ensureBpeDirectItemOption();
     }
+    updateAlloyVisibility();
     updateSizeOptions();
   });
 
