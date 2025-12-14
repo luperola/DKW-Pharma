@@ -254,9 +254,29 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const row of rows) {
       const unit = computeRowUnitPrice(row);
       const qty = Number(row.quantity || 0);
-      tot += unit * qty;
+      const surcharge = computeBpeDirectSurcharge(row, qty);
+      tot += unit * qty + surcharge;
     }
     return roundToDecimals(tot, 2);
+  }
+
+  function isBpeDirectRow(row) {
+    return (
+      row?.itemType === BPE_DIRECT_ITEM_TYPE &&
+      row?.finish === BPE_DIRECT_FINISH
+    );
+  }
+
+  function computeBpeDirectSurcharge(
+    row,
+    qtyValue = Number(row?.quantity || 0)
+  ) {
+    if (!isBpeDirectRow(row)) return 0;
+
+    const metersPerCase = Number(row?.metersPerCase || 0);
+    if (!metersPerCase || qtyValue <= 0) return 0;
+
+    return qtyValue % metersPerCase === 0 ? 0 : 87;
   }
 
   function getSuggestedDiscount(totalValue) {
@@ -886,6 +906,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const catItem = items[0]; // se più di uno, prendo il primo
 
       let description = `${itemType} ${finish} ${sizeText}`;
+      if (isBpeDirectRow({ itemType, finish })) {
+        description = `${itemType} ** ${sizeText}`;
+      }
       if (itemType === "Clamps") {
         const flangeSize =
           catItem.flangeSizeMm != null
@@ -919,10 +942,12 @@ document.addEventListener("DOMContentLoaded", () => {
         row.basePricePerM = catItem.pricePerM || 0;
         row.pesoKgM = catItem.pesoKgM || 0;
         row.alloySurchargePerKg = alloy || 0;
+        row.metersPerCase = catItem.metersPerCase;
       } else {
         row.basePricePerPc = catItem.pricePerPc || 0;
         row.pesoKgM = null;
         row.alloySurchargePerKg = null;
+        row.metersPerCase = null;
       }
 
       row.size = sizeText;
@@ -1127,7 +1152,8 @@ function renderTable() {
 
     const colTotal = document.createElement("td");
     colTotal.classList.add("text-end");
-    const rowTotal = unitPrice * qtyValue;
+    const surcharge = computeBpeDirectSurcharge(row, qtyValue);
+    const rowTotal = unitPrice * qtyValue + surcharge;
     colTotal.textContent = formatCurrency(rowTotal);
     grandTotal += rowTotal;
     tr.appendChild(colTotal);

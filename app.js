@@ -8,6 +8,8 @@ import fs from "fs";
 import { loadCatalog, FINISHES, BPE_DIRECT_FINISH } from "./catalogLoader.js";
 import multer from "multer";
 
+const BPE_DIRECT_ITEM_TYPE = "Tube BPE Direct SF1";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -41,6 +43,20 @@ function ensureCatalog() {
   if (!catalog || !catalog.tubes || !catalog.simple || !catalog.complex) {
     catalog = safeLoadCatalog();
   }
+}
+
+function computeBpeDirectSurcharge(item = {}, qty = 0) {
+  const isBpeDirect =
+    item.itemType === BPE_DIRECT_ITEM_TYPE || item.finish === BPE_DIRECT_FINISH;
+
+  if (!isBpeDirect) return 0;
+
+  const metersPerCase = Number(item.metersPerCase || 0);
+  const quantity = Number(qty || 0);
+
+  if (!metersPerCase || quantity <= 0) return 0;
+
+  return quantity % metersPerCase === 0 ? 0 : 87;
 }
 
 let catalog = safeLoadCatalog();
@@ -202,6 +218,8 @@ app.post("/api/export", async (req, res) => {
     };
     headerRow.height = 96.75;
 
+    const surcharges = [];
+
     // === Dati: da riga 3 in poi
     rows.forEach((item, idx) => {
       const isTube =
@@ -225,7 +243,10 @@ app.post("/api/export", async (req, res) => {
         : null;
       const puBase = isTube ? base + (asM || 0) : base;
       const pu = Math.round((puBase + Number.EPSILON) * 1000) / 1000;
-      const tot = pu * qty;
+      const surcharge = computeBpeDirectSurcharge(item, qty);
+      const tot = pu * qty + surcharge;
+
+      surcharges.push(surcharge);
 
       ws.addRow({
         pos,
@@ -241,6 +262,9 @@ app.post("/api/export", async (req, res) => {
         tot,
       });
     });
+
+    const dataStartRow = 3;
+    const dataLastRow = ws.rowCount;
 
     // Allineamenti/arrotondamenti iniziali (F..K) + E e D — RIGHE 3..rowCount
     for (let i = 3; i <= ws.rowCount; i++) {
@@ -292,6 +316,7 @@ app.post("/api/export", async (req, res) => {
     for (let i = 3; i <= ws.rowCount; i++) {
       const um = String(ws.getCell(i, 4).value || "").toLowerCase(); // "mt"
       const qty = Number(ws.getCell(i, 5).value || 0);
+      const surcharge = surcharges[i - dataStartRow] || 0;
 
       const mVal = Number(ws.getCell(i, 13).value || 0);
       const fNew =
@@ -312,15 +337,13 @@ app.post("/api/export", async (req, res) => {
       cellJ.numFmt = "€ #,##0.00";
       cellJ.alignment = { horizontal: "right" };
 
-      const kNew = Math.round((jNew * qty + Number.EPSILON) * 100) / 100;
+      const kNew =
+        Math.round((jNew * qty + surcharge + Number.EPSILON) * 100) / 100;
       const cellK = ws.getCell(i, 11);
       cellK.value = kNew;
       cellK.numFmt = "€ #,##0.00";
       cellK.alignment = { horizontal: "right" };
     }
-
-    const dataStartRow = 3;
-    const dataLastRow = ws.rowCount;
 
     for (let r = dataStartRow; r <= dataLastRow; r++)
       ws.getRow(r).height = 31.5;
