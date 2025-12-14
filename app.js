@@ -223,7 +223,9 @@ app.post("/api/export", async (req, res) => {
     // === Dati: da riga 3 in poi
     rows.forEach((item, idx) => {
       const isTube =
-        item.itemType === "Tubes" || item.itemType === "Coassiali Tubes";
+        item.itemType === "Tubes" ||
+        item.itemType === "Coassiali Tubes" ||
+        item.itemType === BPE_DIRECT_ITEM_TYPE;
 
       const pos = (idx + 1) * 100;
       const descr = item.description || "";
