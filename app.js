@@ -347,6 +347,21 @@ app.post("/api/export", async (req, res) => {
       cellK.alignment = { horizontal: "right" };
     }
 
+    // Sostituisce gli zeri con "-" nelle colonne Peso / Alloy surcharge
+    for (let i = dataStartRow; i <= dataLastRow; i++) {
+      for (const col of [7, 8, 9]) {
+        const cell = ws.getCell(i, col);
+        const rawVal = cell.value;
+        const numericVal =
+          typeof rawVal === "number" ? rawVal : Number(String(rawVal).trim());
+
+        if (Number.isFinite(numericVal) && numericVal === 0) {
+          cell.value = "-";
+          cell.alignment = { horizontal: "center" };
+        }
+      }
+    }
+
     for (let r = dataStartRow; r <= dataLastRow; r++)
       ws.getRow(r).height = 31.5;
 
@@ -465,6 +480,11 @@ app.post("/api/import", upload.single("file"), async (req, res) => {
     const ws = wb.getWorksheet("Offerta") || wb.worksheets[0];
     if (!ws) return res.json({ rows: [] });
 
+    const parseNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+
     const rows = [];
     for (let r = 3; r <= ws.rowCount; r++) {
       const descr = ws.getCell(r, 2).value; // B
@@ -481,9 +501,9 @@ app.post("/api/import", upload.single("file"), async (req, res) => {
 
       const emptyDescr = descr == null || String(descr).trim() === "";
       const numbersAllZero =
-        Number(qty || 0) === 0 &&
-        Number(pu || 0) === 0 &&
-        Number(tot || 0) === 0;
+        parseNumber(qty) === 0 &&
+        parseNumber(pu) === 0 &&
+        parseNumber(tot) === 0;
 
       if ((emptyDescr && numbersAllZero) || cellIJ.includes("totale items"))
         break;
@@ -495,15 +515,15 @@ app.post("/api/import", upload.single("file"), async (req, res) => {
         description: descr ? String(descr) : "",
         code: code ? String(code) : "",
         um,
-        quantity: Number(qty || 0),
-        base: Number(base || 0),
-        peso: um === "mt" ? Number(peso || 0) : null,
-        asKg: um === "mt" ? Number(asKg || 0) : null,
-        unitPrice: Number(prezzoPieno || 0),
-        pu_file: Number(pu || 0),
-        tot_file: Number(tot || 0),
-        prezzoPienoM: Number(prezzoPieno || 0),
-        tot: Number(tot || 0),
+        quantity: parseNumber(qty),
+        base: parseNumber(base),
+        peso: um === "mt" ? parseNumber(peso) : null,
+        asKg: um === "mt" ? parseNumber(asKg) : null,
+        unitPrice: parseNumber(prezzoPieno),
+        pu_file: parseNumber(pu),
+        tot_file: parseNumber(tot),
+        prezzoPienoM: parseNumber(prezzoPieno),
+        tot: parseNumber(tot),
         itemType: um === "mt" ? "Tubes" : "Imported",
       });
     }
