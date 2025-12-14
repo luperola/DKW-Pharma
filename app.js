@@ -219,6 +219,7 @@ app.post("/api/export", async (req, res) => {
     headerRow.height = 96.75;
 
     const surcharges = [];
+    const bpeDirectFlags = [];
 
     // === Dati: da riga 3 in poi
     rows.forEach((item, idx) => {
@@ -226,6 +227,9 @@ app.post("/api/export", async (req, res) => {
         item.itemType === "Tubes" ||
         item.itemType === "Coassiali Tubes" ||
         item.itemType === BPE_DIRECT_ITEM_TYPE;
+      const isBpeDirect =
+        item.itemType === BPE_DIRECT_ITEM_TYPE ||
+        item.finish === BPE_DIRECT_FINISH;
 
       const pos = (idx + 1) * 100;
       const descr = item.description || "";
@@ -249,6 +253,7 @@ app.post("/api/export", async (req, res) => {
       const tot = pu * qty + surcharge;
 
       surcharges.push(surcharge);
+      bpeDirectFlags.push(isBpeDirect);
 
       ws.addRow({
         pos,
@@ -319,10 +324,12 @@ app.post("/api/export", async (req, res) => {
       const um = String(ws.getCell(i, 4).value || "").toLowerCase(); // "mt"
       const qty = Number(ws.getCell(i, 5).value || 0);
       const surcharge = surcharges[i - dataStartRow] || 0;
+      const isBpeDirectRow = bpeDirectFlags[i - dataStartRow] || false;
 
       const mVal = Number(ws.getCell(i, 13).value || 0);
-      const fNew =
+      const discounted =
         Math.round((mVal * (1 - dp / 100) + Number.EPSILON) * 100) / 100;
+      const fNew = isBpeDirectRow ? mVal : discounted;
       const cellF = ws.getCell(i, 6);
       cellF.value = fNew;
       cellF.numFmt = "€ #,##0.00";

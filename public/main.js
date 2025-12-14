@@ -140,6 +140,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const discountStilmasRadio = qs("discountStilmasRadio");
   const discountOtherRadio = qs("discountOtherRadio");
   const discountCustomInput = qs("discountCustomInput");
+  const bpeDirectExtras = qs("bpeDirectExtras");
+  const bpeDirectLabelsInput = qs("bpeDirectLabelsInput");
+  const bpeDirectBeltsInput = qs("bpeDirectBeltsInput");
   const transportSelectModal = qs("transportSelectModal");
   const fileNameInput = qs("fileNameInput");
   const confirmExportBtn = qs("confirmExportBtn");
@@ -275,6 +278,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return roundToDecimals(tot, 2);
   }
 
+  function hasBpeDirectRows(rows = currentRows) {
+    return rows.some((row) => isBpeDirectRow(row));
+  }
+
   function getSuggestedDiscount(totalValue) {
     if (totalValue < 20000) return 35.83;
     if (totalValue < 50000) return 41.18;
@@ -318,6 +325,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleDiscountOptionChange() {
     discountCustomInput.disabled = !discountOtherRadio.checked;
     if (!discountOtherRadio.checked) discountCustomInput.value = "";
+  }
+
+  function updateBpeDirectExtrasVisibility() {
+    if (!bpeDirectExtras) return;
+
+    const hasRows = hasBpeDirectRows();
+    bpeDirectExtras.classList.toggle("d-none", !hasRows);
+
+    if (hasRows) {
+      if (!bpeDirectLabelsInput.value) bpeDirectLabelsInput.value = "0";
+      if (!bpeDirectBeltsInput.value) bpeDirectBeltsInput.value = "0";
+    }
   }
 
   function getSelectedTransportPercent() {
@@ -968,6 +987,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     updateDiscountUI();
+    updateBpeDirectExtrasVisibility();
     exportModal.show();
   });
 
@@ -1189,4 +1209,6 @@ function renderTable() {
 
     tbody.appendChild(totalRow);
   }
+
+  updateBpeDirectExtrasVisibility();
 }
