@@ -238,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
     finishSelect.value = BPE_DIRECT_FINISH;
     itemTypeSelect.value = BPE_DIRECT_ITEM_TYPE;
     itemTypeSelect.dispatchEvent(new Event("change"));
-    updateSizeOptions();
   }
 
   function warnIfBpeDirectForbidden(ndValue) {
