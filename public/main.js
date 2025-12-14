@@ -34,6 +34,8 @@ const otherItemsById = new Map();
 const otherItemOptions = new Map(); // value -> { item, option }
 const OTHER_ITEM_PREFIX = "other-item:";
 let bpeDirectMetersByND = new Map();
+let availableFinishes = [];
+let bpeDirectEnabled = false;
 
 function isCustomOtherItemType(value) {
   return typeof value === "string" && value.startsWith(OTHER_ITEM_PREFIX);
@@ -154,10 +156,35 @@ document.addEventListener("DOMContentLoaded", () => {
     select.insertBefore(opt, select.options[insertIndex] || null);
   }
 
-  function ensureBpeDirectFinishOption() {
-    upsertOptionAtStart(finishSelect, BPE_DIRECT_FINISH, BPE_DIRECT_FINISH);
+  function renderFinishOptions(preserveValue = true) {
+    const previousValue = preserveValue ? finishSelect.value : "";
+    finishSelect.innerHTML = "";
+
+    const placeholder = new Option("-- Seleziona --", "");
+    finishSelect.appendChild(placeholder);
+
+    if (bpeDirectEnabled) {
+      const bpeOption = new Option(BPE_DIRECT_FINISH, BPE_DIRECT_FINISH);
+      finishSelect.appendChild(bpeOption);
+    }
+    availableFinishes.forEach((finish) => {
+      const opt = new Option(finish, finish);
+      finishSelect.appendChild(opt);
+    });
+
+    const availableValues = new Set(
+      Array.from(finishSelect.options).map((opt) => opt.value)
+    );
+    finishSelect.value = availableValues.has(previousValue)
+      ? previousValue
+      : "";
   }
 
+  function ensureBpeDirectFinishOption() {
+    if (bpeDirectEnabled) return;
+    bpeDirectEnabled = true;
+    renderFinishOptions();
+  }
   function ensureBpeDirectItemOption() {
     upsertOptionAtStart(
       itemTypeSelect,
@@ -467,12 +494,10 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/catalog/finishes")
     .then((r) => r.json())
     .then((data) => {
-      (data.finishes || []).forEach((f) => {
-        const opt = document.createElement("option");
-        opt.value = f;
-        opt.textContent = f;
-        finishSelect.appendChild(opt);
-      });
+      availableFinishes = (data.finishes || []).filter(
+        (f) => f !== BPE_DIRECT_FINISH
+      );
+      renderFinishOptions();
     })
     .catch((err) => console.error("Errore caricamento finiture:", err));
 
