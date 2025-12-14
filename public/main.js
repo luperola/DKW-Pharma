@@ -33,6 +33,7 @@ let otherItems = [];
 const otherItemsById = new Map();
 const otherItemOptions = new Map(); // value -> { item, option }
 const OTHER_ITEM_PREFIX = "other-item:";
+let bpeDirectMetersByND = new Map();
 
 function isCustomOtherItemType(value) {
   return typeof value === "string" && value.startsWith(OTHER_ITEM_PREFIX);
@@ -94,6 +95,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const od2Group = qs("od2Group");
   const od1Select = qs("od1Select");
   const od2Select = qs("od2Select");
+
+  const metersPerCaseGroup = qs("metersPerCaseGroup");
+  const metersPerCaseInput = qs("metersPerCaseInput");
 
   const alloyGroup = qs("alloyGroup");
   const alloyInput = qs("alloyInput");
@@ -182,6 +186,23 @@ document.addEventListener("DOMContentLoaded", () => {
       alloyInput.disabled = true;
       alloyInput.value = "";
     }
+  }
+
+  function updateMetersPerCaseVisibility(ndValue = ndSelect.value.trim()) {
+    if (!metersPerCaseGroup) return;
+
+    const shouldShow =
+      isBpeDirectContext() && TUBE_ITEMS.has(itemTypeSelect.value);
+
+    if (!shouldShow) {
+      metersPerCaseGroup.classList.add("d-none");
+      metersPerCaseInput.value = "";
+      return;
+    }
+
+    metersPerCaseGroup.classList.remove("d-none");
+    const meters = bpeDirectMetersByND.get(ndValue) ?? "";
+    metersPerCaseInput.value = meters ? `m ${meters}` : "";
   }
 
   function activateBpeDirectPreset() {
@@ -489,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ndGroup.classList.remove("d-none");
       od1Group.classList.add("d-none");
       od2Group.classList.add("d-none");
+      updateMetersPerCaseVisibility("");
       return;
     }
 
@@ -501,6 +523,8 @@ document.addEventListener("DOMContentLoaded", () => {
     od1Select.innerHTML = '<option value="">Seleziona</option>';
     od2Select.innerHTML = '<option value="">Seleziona</option>';
     currentComplexMap = {};
+    bpeDirectMetersByND = new Map();
+    updateMetersPerCaseVisibility("");
 
     if (!finish || !itemType) {
       // nulla da caricare
@@ -518,6 +542,16 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         const data = await res.json();
         const items = data.items || [];
+        if (finish === BPE_DIRECT_FINISH) {
+          items.forEach((it) => {
+            const nd = it.ND != null ? String(it.ND).trim() : "";
+            if (!nd) return;
+            const meters = it.metersPerCase;
+            if (meters != null && meters !== "") {
+              bpeDirectMetersByND.set(nd, meters);
+            }
+          });
+        }
         const ndSet = new Set(
           items.map((it) => (it.ND != null ? String(it.ND).trim() : ""))
         );
@@ -533,6 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (previousND && ndValues.includes(previousND)) {
           ndSelect.value = previousND;
         }
+        updateMetersPerCaseVisibility(ndSelect.value.trim());
         ndGroup.classList.remove("d-none");
         od1Group.classList.add("d-none");
         od2Group.classList.add("d-none");
@@ -669,6 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
   ndSelect.addEventListener("change", () => {
     const ndValue = ndSelect.value.trim();
     if (ndValue) warnIfBpeDirectForbidden(ndValue);
+    updateMetersPerCaseVisibility(ndSelect.value.trim());
   });
 
   // Aggiungi riga

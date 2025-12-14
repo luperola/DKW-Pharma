@@ -168,10 +168,12 @@ function loadBpeDirectTubesCatalog() {
     for (const r of rows) {
       const inchRaw = pick(r, ["Inch", "DN inch", "ND inch"]);
       const mmRaw = pick(r, ["mm", "DN mm", "ND mm"]);
+      const metersPerCaseRaw = pick(r, ["m/cassa", "m/cassa "]);
       const ND = formatDimension(mmRaw, inchRaw);
       if (!ND) continue;
       const codeRaw = pick(r, ["Order Code"]);
       const price = parseNum(pick(r, ["Price in € / m", "Price €/m"]));
+      const metersPerCase = parseNum(metersPerCaseRaw);
       const code = codeRaw != null ? String(codeRaw).trim() : "";
       out.push({
         itemType: "Tubes",
@@ -180,6 +182,7 @@ function loadBpeDirectTubesCatalog() {
         code,
         pesoKgM: 0,
         pricePerM: price,
+        metersPerCase,
       });
     }
     return out;
