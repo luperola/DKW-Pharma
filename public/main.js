@@ -26,6 +26,21 @@ const BPE_DIRECT_FORBIDDEN_ND = new Set([
   '12.7 mm (1/2")',
 ]);
 
+function isBpeDirectRow(row) {
+  return (
+    row?.itemType === BPE_DIRECT_ITEM_TYPE && row?.finish === BPE_DIRECT_FINISH
+  );
+}
+
+function computeBpeDirectSurcharge(row, qtyValue = Number(row?.quantity || 0)) {
+  if (!isBpeDirectRow(row)) return 0;
+
+  const metersPerCase = Number(row?.metersPerCase || 0);
+  if (!metersPerCase || qtyValue <= 0) return 0;
+
+  return qtyValue % metersPerCase === 0 ? 0 : 87;
+}
+
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
@@ -258,25 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tot += unit * qty + surcharge;
     }
     return roundToDecimals(tot, 2);
-  }
-
-  function isBpeDirectRow(row) {
-    return (
-      row?.itemType === BPE_DIRECT_ITEM_TYPE &&
-      row?.finish === BPE_DIRECT_FINISH
-    );
-  }
-
-  function computeBpeDirectSurcharge(
-    row,
-    qtyValue = Number(row?.quantity || 0)
-  ) {
-    if (!isBpeDirectRow(row)) return 0;
-
-    const metersPerCase = Number(row?.metersPerCase || 0);
-    if (!metersPerCase || qtyValue <= 0) return 0;
-
-    return qtyValue % metersPerCase === 0 ? 0 : 87;
   }
 
   function getSuggestedDiscount(totalValue) {
