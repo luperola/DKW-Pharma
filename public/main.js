@@ -330,10 +330,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateBpeDirectExtrasVisibility() {
     if (!bpeDirectExtras) return;
 
-    const hasRows = hasBpeDirectRows();
-    bpeDirectExtras.classList.toggle("d-none", !hasRows);
+    const shouldShow = hasBpeDirectRows() || isBpeDirectContext();
+    bpeDirectExtras.classList.toggle("d-none", !shouldShow);
 
-    if (hasRows) {
+    if (shouldShow) {
       if (!bpeDirectLabelsInput.value) bpeDirectLabelsInput.value = "0";
       if (!bpeDirectBeltsInput.value) bpeDirectBeltsInput.value = "0";
     } else {
@@ -752,6 +752,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // aggiorna ND / OD1-OD2
     if (!isOtherItem) updateSizeOptions();
+
+    updateBpeDirectExtrasVisibility();
   });
 
   // Se cambia finitura, ricarico ND / OD1-OD2
@@ -761,6 +763,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     updateAlloyVisibility();
     updateSizeOptions();
+    updateBpeDirectExtrasVisibility();
   });
 
   ndSelect.addEventListener("change", () => {
