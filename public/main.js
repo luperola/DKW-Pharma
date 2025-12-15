@@ -1085,130 +1085,130 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Errore durante l'importazione.");
     }
   });
+  // Render tabella righe
+  function renderTable() {
+    const tbody = document.querySelector("#offerTable tbody");
+    tbody.innerHTML = "";
+
+    let grandTotal = 0;
+
+    currentRows.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+
+      const colIndex = document.createElement("td");
+      colIndex.textContent = idx + 1;
+      tr.appendChild(colIndex);
+
+      const colItem = document.createElement("td");
+      colItem.textContent = row.itemType || "";
+      tr.appendChild(colItem);
+
+      const colDesc = document.createElement("td");
+      colDesc.textContent = row.description || "";
+      tr.appendChild(colDesc);
+
+      const colCode = document.createElement("td");
+      colCode.textContent = row.code || "";
+      tr.appendChild(colCode);
+
+      const colBase = document.createElement("td");
+      const isTube = row.itemType === "Tubes";
+      colBase.classList.add("text-end");
+      const base = isTube ? row.basePricePerM ?? 0 : row.basePricePerPc ?? 0;
+      colBase.textContent = base.toFixed(2);
+      tr.appendChild(colBase);
+
+      const colAlloy = document.createElement("td");
+      if (row.itemType === "Tubes") {
+        colAlloy.classList.add("col-alloy");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "0.01";
+        input.min = "0";
+        input.className = "form-control form-control-sm text-end";
+        input.value = (row.alloySurchargePerKg ?? 0).toFixed(2);
+        input.addEventListener("change", () => {
+          const newVal = parseFloat(input.value.replace(",", "."));
+          row.alloySurchargePerKg = isNaN(newVal) || newVal < 0 ? 0 : newVal;
+          renderTable();
+        });
+        colAlloy.appendChild(input);
+      } else {
+        colAlloy.textContent = "-";
+        colAlloy.classList.add("text-center", "col-alloy");
+      }
+      tr.appendChild(colAlloy);
+
+      const colUnit = document.createElement("td");
+      colUnit.classList.add("text-end", "col-unit");
+      const unitPrice = computeRowUnitPrice(row);
+      colUnit.textContent = unitPrice.toFixed(2);
+      tr.appendChild(colUnit);
+
+      const colQty = document.createElement("td");
+      colQty.classList.add("col-qty");
+      const qtyValue = Number(row.quantity ?? 0);
+      const qtyInput = document.createElement("input");
+      qtyInput.type = "number";
+      qtyInput.min = "0";
+      qtyInput.step = "1";
+      qtyInput.className = "form-control form-control-sm text-end";
+      qtyInput.value = qtyValue.toString();
+      qtyInput.addEventListener("change", () => {
+        const newQty = parseInt(qtyInput.value, 10);
+        row.quantity = isNaN(newQty) || newQty < 0 ? 0 : newQty;
+        renderTable();
+      });
+      colQty.appendChild(qtyInput);
+      tr.appendChild(colQty);
+
+      const colTotal = document.createElement("td");
+      colTotal.classList.add("text-end");
+      const surcharge = computeBpeDirectSurcharge(row, qtyValue);
+      const rowTotal = unitPrice * qtyValue + surcharge;
+      colTotal.textContent = formatCurrency(rowTotal);
+      grandTotal += rowTotal;
+      tr.appendChild(colTotal);
+
+      const colActions = document.createElement("td");
+      colActions.classList.add("text-center");
+      const btnRemove = document.createElement("button");
+      btnRemove.type = "button";
+      btnRemove.className = "btn btn-sm btn-danger btn-icon";
+      btnRemove.textContent = "X";
+      btnRemove.addEventListener("click", () => {
+        currentRows.splice(idx, 1);
+        renderTable();
+      });
+      colActions.appendChild(btnRemove);
+      tr.appendChild(colActions);
+
+      tbody.appendChild(tr);
+    });
+    if (currentRows.length) {
+      const totalRow = document.createElement("tr");
+      totalRow.classList.add("table-secondary", "fw-semibold");
+
+      const labelCell = document.createElement("td");
+      labelCell.colSpan = 8;
+      labelCell.classList.add("text-end");
+      labelCell.textContent = "Grand Total";
+      totalRow.appendChild(labelCell);
+
+      const valueCell = document.createElement("td");
+      valueCell.classList.add("text-end");
+      valueCell.textContent = formatCurrency(grandTotal);
+      totalRow.appendChild(valueCell);
+
+      const emptyCell = document.createElement("td");
+      totalRow.appendChild(emptyCell);
+
+      tbody.appendChild(totalRow);
+    }
+
+    updateBpeDirectExtrasVisibility();
+  }
+
   addOtherItemsBtn.addEventListener("click", addSelectedOtherItemsToTable);
   loadOtherItemsFromServer();
 });
-
-// Render tabella righe
-function renderTable() {
-  const tbody = document.querySelector("#offerTable tbody");
-  tbody.innerHTML = "";
-
-  let grandTotal = 0;
-
-  currentRows.forEach((row, idx) => {
-    const tr = document.createElement("tr");
-
-    const colIndex = document.createElement("td");
-    colIndex.textContent = idx + 1;
-    tr.appendChild(colIndex);
-
-    const colItem = document.createElement("td");
-    colItem.textContent = row.itemType || "";
-    tr.appendChild(colItem);
-
-    const colDesc = document.createElement("td");
-    colDesc.textContent = row.description || "";
-    tr.appendChild(colDesc);
-
-    const colCode = document.createElement("td");
-    colCode.textContent = row.code || "";
-    tr.appendChild(colCode);
-
-    const colBase = document.createElement("td");
-    const isTube = row.itemType === "Tubes";
-    colBase.classList.add("text-end");
-    const base = isTube ? row.basePricePerM ?? 0 : row.basePricePerPc ?? 0;
-    colBase.textContent = base.toFixed(2);
-    tr.appendChild(colBase);
-
-    const colAlloy = document.createElement("td");
-    if (row.itemType === "Tubes") {
-      colAlloy.classList.add("col-alloy");
-      const input = document.createElement("input");
-      input.type = "number";
-      input.step = "0.01";
-      input.min = "0";
-      input.className = "form-control form-control-sm text-end";
-      input.value = (row.alloySurchargePerKg ?? 0).toFixed(2);
-      input.addEventListener("change", () => {
-        const newVal = parseFloat(input.value.replace(",", "."));
-        row.alloySurchargePerKg = isNaN(newVal) || newVal < 0 ? 0 : newVal;
-        renderTable();
-      });
-      colAlloy.appendChild(input);
-    } else {
-      colAlloy.textContent = "-";
-      colAlloy.classList.add("text-center", "col-alloy");
-    }
-    tr.appendChild(colAlloy);
-
-    const colUnit = document.createElement("td");
-    colUnit.classList.add("text-end", "col-unit");
-    const unitPrice = computeRowUnitPrice(row);
-    colUnit.textContent = unitPrice.toFixed(2);
-    tr.appendChild(colUnit);
-
-    const colQty = document.createElement("td");
-    colQty.classList.add("col-qty");
-    const qtyValue = Number(row.quantity ?? 0);
-    const qtyInput = document.createElement("input");
-    qtyInput.type = "number";
-    qtyInput.min = "0";
-    qtyInput.step = "1";
-    qtyInput.className = "form-control form-control-sm text-end";
-    qtyInput.value = qtyValue.toString();
-    qtyInput.addEventListener("change", () => {
-      const newQty = parseInt(qtyInput.value, 10);
-      row.quantity = isNaN(newQty) || newQty < 0 ? 0 : newQty;
-      renderTable();
-    });
-    colQty.appendChild(qtyInput);
-    tr.appendChild(colQty);
-
-    const colTotal = document.createElement("td");
-    colTotal.classList.add("text-end");
-    const surcharge = computeBpeDirectSurcharge(row, qtyValue);
-    const rowTotal = unitPrice * qtyValue + surcharge;
-    colTotal.textContent = formatCurrency(rowTotal);
-    grandTotal += rowTotal;
-    tr.appendChild(colTotal);
-
-    const colActions = document.createElement("td");
-    colActions.classList.add("text-center");
-    const btnRemove = document.createElement("button");
-    btnRemove.type = "button";
-    btnRemove.className = "btn btn-sm btn-danger btn-icon";
-    btnRemove.textContent = "X";
-    btnRemove.addEventListener("click", () => {
-      currentRows.splice(idx, 1);
-      renderTable();
-    });
-    colActions.appendChild(btnRemove);
-    tr.appendChild(colActions);
-
-    tbody.appendChild(tr);
-  });
-  if (currentRows.length) {
-    const totalRow = document.createElement("tr");
-    totalRow.classList.add("table-secondary", "fw-semibold");
-
-    const labelCell = document.createElement("td");
-    labelCell.colSpan = 8;
-    labelCell.classList.add("text-end");
-    labelCell.textContent = "Grand Total";
-    totalRow.appendChild(labelCell);
-
-    const valueCell = document.createElement("td");
-    valueCell.classList.add("text-end");
-    valueCell.textContent = formatCurrency(grandTotal);
-    totalRow.appendChild(valueCell);
-
-    const emptyCell = document.createElement("td");
-    totalRow.appendChild(emptyCell);
-
-    tbody.appendChild(totalRow);
-  }
-
-  updateBpeDirectExtrasVisibility();
-}
