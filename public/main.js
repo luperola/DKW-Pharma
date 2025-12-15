@@ -336,6 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (hasRows) {
       if (!bpeDirectLabelsInput.value) bpeDirectLabelsInput.value = "0";
       if (!bpeDirectBeltsInput.value) bpeDirectBeltsInput.value = "0";
+    } else {
+      bpeDirectLabelsInput.value = "0";
+      bpeDirectBeltsInput.value = "0";
     }
   }
 
