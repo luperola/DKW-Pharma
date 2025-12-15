@@ -51,6 +51,7 @@ const OTHER_ITEM_PREFIX = "other-item:";
 let bpeDirectMetersByND = new Map();
 let availableFinishes = [];
 let bpeDirectEnabled = false;
+let bpeDirectButtonClicked = false;
 
 function isCustomOtherItemType(value) {
   return typeof value === "string" && value.startsWith(OTHER_ITEM_PREFIX);
@@ -278,6 +279,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return roundToDecimals(tot, 2);
   }
 
+  function computeBpeDirectExtrasTotal() {
+    const finishIsBpeDirect = finishSelect.value === BPE_DIRECT_FINISH;
+    if (!hasBpeDirectRows() || !finishIsBpeDirect) return 0;
+
+    const labels = parseInt(bpeDirectLabelsInput?.value ?? "0", 10);
+    const belts = parseInt(bpeDirectBeltsInput?.value ?? "0", 10);
+    const labelsTotal = !isNaN(labels) && labels > 0 ? labels * 0.63 : 0;
+    const beltsTotal = !isNaN(belts) && belts > 0 ? belts * 14.5 : 0;
+    return roundToDecimals(labelsTotal + beltsTotal, 2);
+  }
+
   function hasBpeDirectRows(rows = currentRows) {
     return rows.some((row) => isBpeDirectRow(row));
   }
@@ -330,7 +342,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateBpeDirectExtrasVisibility() {
     if (!bpeDirectExtras) return;
 
-    const shouldShow = hasBpeDirectRows() || isBpeDirectContext();
+    const finishIsBpeDirect = finishSelect.value === BPE_DIRECT_FINISH;
+    const hasBpeRows = hasBpeDirectRows();
+    const shouldShow =
+      finishIsBpeDirect && (bpeDirectButtonClicked || hasBpeRows);
     bpeDirectExtras.classList.toggle("d-none", !shouldShow);
 
     if (shouldShow) {
@@ -524,8 +539,25 @@ document.addEventListener("DOMContentLoaded", () => {
   discountStilmasRadio.addEventListener("change", handleDiscountOptionChange);
   discountOtherRadio.addEventListener("change", handleDiscountOptionChange);
   if (bpeDirectBtn) {
-    bpeDirectBtn.addEventListener("click", activateBpeDirectPreset);
+    bpeDirectBtn.addEventListener("click", () => {
+      bpeDirectButtonClicked = true;
+      activateBpeDirectPreset();
+      updateBpeDirectExtrasVisibility();
+    });
   }
+
+  function ensurePositiveNumericInput(event) {
+    const input = event?.target;
+    if (!input) return;
+    const parsed = parseInt(input.value, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      input.value = "0";
+    }
+    renderTable();
+  }
+
+  bpeDirectLabelsInput?.addEventListener("change", ensurePositiveNumericInput);
+  bpeDirectBeltsInput?.addEventListener("change", ensurePositiveNumericInput);
 
   // Carica finiture dal backend (ASME BPE SF1 / SF4)
   fetch("/api/catalog/finishes")
@@ -1192,6 +1224,29 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.appendChild(tr);
     });
     if (currentRows.length) {
+      const bpeExtrasTotal = computeBpeDirectExtrasTotal();
+
+      if (bpeExtrasTotal > 0) {
+        const extrasRow = document.createElement("tr");
+        extrasRow.classList.add("table-warning", "fw-semibold");
+
+        const extrasLabelCell = document.createElement("td");
+        extrasLabelCell.colSpan = 8;
+        extrasLabelCell.classList.add("text-end");
+        extrasLabelCell.textContent = "Extra BPE Direct SF1";
+        extrasRow.appendChild(extrasLabelCell);
+
+        const extrasValueCell = document.createElement("td");
+        extrasValueCell.classList.add("text-end");
+        extrasValueCell.textContent = formatCurrency(bpeExtrasTotal);
+        extrasRow.appendChild(extrasValueCell);
+
+        const extrasEmptyCell = document.createElement("td");
+        extrasRow.appendChild(extrasEmptyCell);
+
+        tbody.appendChild(extrasRow);
+      }
+      const totalWithExtras = grandTotal + bpeExtrasTotal;
       const totalRow = document.createElement("tr");
       totalRow.classList.add("table-secondary", "fw-semibold");
 
@@ -1203,7 +1258,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const valueCell = document.createElement("td");
       valueCell.classList.add("text-end");
-      valueCell.textContent = formatCurrency(grandTotal);
+      valueCell.textContent = formatCurrency(totalWithExtras);
       totalRow.appendChild(valueCell);
 
       const emptyCell = document.createElement("td");
