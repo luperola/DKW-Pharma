@@ -69,6 +69,38 @@ function getBpeDirectRowExtras(row) {
   return Number(row?.bpeDirectExtrasTotal || 0);
 }
 
+function needsBpeDirectQtyNote(row) {
+  if (!isBpeDirectRow(row)) return false;
+
+  const metersPerCase = Number(row?.metersPerCase || 0);
+  const qtyValue = Number(row?.quantity || 0);
+
+  if (!metersPerCase) return false;
+
+  return qtyValue !== metersPerCase;
+}
+
+function getRowDescription(row) {
+  const baseDescription = row?.description || "";
+  const needsNote = needsBpeDirectQtyNote(row);
+
+  return needsNote ? `${baseDescription} (**)` : baseDescription;
+}
+
+function renderDescriptionCell(cell, row) {
+  const note = needsBpeDirectQtyNote(row) ? "(**)" : "";
+  const baseDescription = row?.description || "";
+
+  cell.textContent = "";
+  cell.appendChild(document.createTextNode(baseDescription));
+  if (note) {
+    cell.appendChild(document.createTextNode(" "));
+    const sup = document.createElement("sup");
+    sup.textContent = note;
+    cell.appendChild(sup);
+  }
+}
+
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
@@ -981,7 +1013,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let description = `${itemType} ${finish} ${sizeText}`;
       if (isBpeDirectRow({ itemType, finish })) {
-        description = `${itemType} ** ${sizeText}`;
+        description = `${itemType} ${sizeText}`;
       }
       if (itemType === "Clamps") {
         const flangeSize =
@@ -1073,12 +1105,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const fileNameSafe =
       (fileNameInput.value || getDefaultFileName()).trim() ||
       getDefaultFileName();
+    const rowsForExport = currentRows.map((row) => ({
+      ...row,
+      description: getRowDescription(row),
+    }));
     try {
       const res = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rows: currentRows,
+          rows: rowsForExport,
           discountPercent,
           transport: { percent: transportPercent },
         }),
@@ -1171,7 +1207,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tr.appendChild(colItem);
 
       const colDesc = document.createElement("td");
-      colDesc.textContent = row.description || "";
+      renderDescriptionCell(colDesc, row);
       tr.appendChild(colDesc);
 
       const colCode = document.createElement("td");
