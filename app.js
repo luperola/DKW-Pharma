@@ -237,6 +237,8 @@ app.post("/api/export", async (req, res) => {
     const surcharges = [];
     const bpeDirectFlags = [];
     const bpeDirectExtrasTotals = [];
+    const bpeDirectLabelsTotals = [];
+    const bpeDirectBeltsTotals = [];
 
     // === Dati: da riga 3 in poi
     rows.forEach((item, idx) => {
@@ -264,11 +266,15 @@ app.post("/api/export", async (req, res) => {
       const pu = roundToDecimals(puBase);
       const surcharge = computeBpeDirectSurcharge(item, qty);
       const extras = getBpeDirectExtras(item);
+      const labelsCount = Number(item.bpeDirectLabels || 0);
+      const beltsCount = Number(item.bpeDirectBelts || 0);
       const tot = pu * qty + surcharge + extras;
 
       surcharges.push(surcharge);
       bpeDirectFlags.push(isBpeDirect);
       bpeDirectExtrasTotals.push(extras);
+      bpeDirectLabelsTotals.push(labelsCount);
+      bpeDirectBeltsTotals.push(beltsCount);
 
       ws.addRow({
         pos,
@@ -287,6 +293,20 @@ app.post("/api/export", async (req, res) => {
 
     const dataStartRow = 3;
     const dataLastRow = ws.rowCount;
+    const hasBpeDirectNote = rows.some((row) =>
+      typeof row?.description === "string"
+        ? /\(\*\*\)\s*$/.test(row.description.trim())
+        : false
+    );
+    const totalBpeDirectLabels = bpeDirectLabelsTotals.reduce(
+      (sum, val, idx) => (bpeDirectFlags[idx] ? sum + (Number(val) || 0) : sum),
+      0
+    );
+    const totalBpeDirectBelts = bpeDirectBeltsTotals.reduce(
+      (sum, val, idx) => (bpeDirectFlags[idx] ? sum + (Number(val) || 0) : sum),
+      0
+    );
+    const noteRowsAdded = hasBpeDirectNote ? 1 : 0;
 
     // Allineamenti/arrotondamenti iniziali (F..K) + E e D — RIGHE 3..rowCount
     for (let i = 3; i <= ws.rowCount; i++) {
@@ -409,7 +429,32 @@ app.post("/api/export", async (req, res) => {
       }
     }
 
-    const r1 = dataLastRow + 1;
+    if (hasBpeDirectNote) {
+      const noteRowIndex = dataLastRow + 1;
+      const baseFont = { name: "Calibri", size: 9 };
+      const extrasNote =
+        totalBpeDirectLabels !== 0 || totalBpeDirectBelts !== 0
+          ? ` Si aggiungono inoltre n° ${totalBpeDirectLabels} etichette a €0,63 / cad. e n° ${totalBpeDirectBelts} belt a € 14,50 / cad.`
+          : "";
+      const richText = [
+        { text: "(**)", font: { ...baseFont, vertAlign: "superscript" } },
+        {
+          text: " Sono stati calculati € 87 / item BPE Direct SF1 perchè le quantità rischieste non corrispondono ai metri tubo per cassa",
+          font: baseFont,
+        },
+      ];
+
+      if (extrasNote) {
+        richText.push({ text: extrasNote, font: baseFont });
+      }
+
+      const noteCell = ws.getCell(noteRowIndex, 2);
+      noteCell.value = { richText };
+      noteCell.font = baseFont;
+      noteCell.alignment = { wrapText: true };
+    }
+
+    const r1 = dataLastRow + noteRowsAdded + 1;
     ws.mergeCells(r1, 9, r1, 10); // I..J
     const cellIJ1 = ws.getCell(r1, 9);
     cellIJ1.value = "Totale Items\nex works";
