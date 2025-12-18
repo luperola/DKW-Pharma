@@ -59,6 +59,15 @@ function computeBpeDirectSurcharge(item = {}, qty = 0) {
   return quantity % metersPerCase === 0 ? 0 : 87;
 }
 
+function getBpeDirectExtras(item = {}) {
+  const isBpeDirect =
+    item.itemType === BPE_DIRECT_ITEM_TYPE || item.finish === BPE_DIRECT_FINISH;
+
+  if (!isBpeDirect) return 0;
+
+  return Number(item.bpeDirectExtrasTotal || 0);
+}
+
 let catalog = safeLoadCatalog();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -220,6 +229,7 @@ app.post("/api/export", async (req, res) => {
 
     const surcharges = [];
     const bpeDirectFlags = [];
+    const bpeDirectExtrasTotals = [];
 
     // === Dati: da riga 3 in poi
     rows.forEach((item, idx) => {
@@ -250,10 +260,12 @@ app.post("/api/export", async (req, res) => {
       const puBase = isTube ? base + (asM || 0) : base;
       const pu = Math.round((puBase + Number.EPSILON) * 1000) / 1000;
       const surcharge = computeBpeDirectSurcharge(item, qty);
-      const tot = pu * qty + surcharge;
+      const extras = getBpeDirectExtras(item);
+      const tot = pu * qty + surcharge + extras;
 
       surcharges.push(surcharge);
       bpeDirectFlags.push(isBpeDirect);
+      bpeDirectExtrasTotals.push(extras);
 
       ws.addRow({
         pos,
@@ -324,6 +336,7 @@ app.post("/api/export", async (req, res) => {
       const um = String(ws.getCell(i, 4).value || "").toLowerCase(); // "mt"
       const qty = Number(ws.getCell(i, 5).value || 0);
       const surcharge = surcharges[i - dataStartRow] || 0;
+      const extras = bpeDirectExtrasTotals[i - dataStartRow] || 0;
       const isBpeDirectRow = bpeDirectFlags[i - dataStartRow] || false;
 
       const mVal = Number(ws.getCell(i, 13).value || 0);
@@ -347,7 +360,8 @@ app.post("/api/export", async (req, res) => {
       cellJ.alignment = { horizontal: "right" };
 
       const kNew =
-        Math.round((jNew * qty + surcharge + Number.EPSILON) * 100) / 100;
+        Math.round((jNew * qty + surcharge + extras + Number.EPSILON) * 100) /
+        100;
       const cellK = ws.getCell(i, 11);
       cellK.value = kNew;
       cellK.numFmt = "€ #,##0.00";

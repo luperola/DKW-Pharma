@@ -41,6 +41,34 @@ function computeBpeDirectSurcharge(row, qtyValue = Number(row?.quantity || 0)) {
   return qtyValue % metersPerCase === 0 ? 0 : 87;
 }
 
+function computeBpeDirectExtrasFromInputs() {
+  const labelsCount = parseInt(bpeDirectLabelsInput?.value ?? "0", 10);
+  const beltsCount = parseInt(bpeDirectBeltsInput?.value ?? "0", 10);
+
+  const safeLabels = isNaN(labelsCount) || labelsCount < 0 ? 0 : labelsCount;
+  const safeBelts = isNaN(beltsCount) || beltsCount < 0 ? 0 : beltsCount;
+
+  const labelsTotal = safeLabels * 0.63;
+  const beltsTotal = safeBelts * 14.5;
+
+  return {
+    labels: safeLabels,
+    belts: safeBelts,
+    total: roundToDecimals(labelsTotal + beltsTotal, 2),
+  };
+}
+
+function resetBpeDirectExtrasInputs() {
+  if (!bpeDirectLabelsInput || !bpeDirectBeltsInput) return;
+  bpeDirectLabelsInput.value = "0";
+  bpeDirectBeltsInput.value = "0";
+}
+
+function getBpeDirectRowExtras(row) {
+  if (!isBpeDirectRow(row)) return 0;
+  return Number(row?.bpeDirectExtrasTotal || 0);
+}
+
 // Item che usano OD1 / OD2
 const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
 
@@ -52,6 +80,9 @@ let bpeDirectMetersByND = new Map();
 let availableFinishes = [];
 let bpeDirectEnabled = false;
 let bpeDirectButtonClicked = false;
+let bpeDirectExtras;
+let bpeDirectLabelsInput;
+let bpeDirectBeltsInput;
 
 function isCustomOtherItemType(value) {
   return typeof value === "string" && value.startsWith(OTHER_ITEM_PREFIX);
@@ -141,9 +172,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const discountStilmasRadio = qs("discountStilmasRadio");
   const discountOtherRadio = qs("discountOtherRadio");
   const discountCustomInput = qs("discountCustomInput");
-  const bpeDirectExtras = qs("bpeDirectExtras");
-  const bpeDirectLabelsInput = qs("bpeDirectLabelsInput");
-  const bpeDirectBeltsInput = qs("bpeDirectBeltsInput");
+  bpeDirectExtras = qs("bpeDirectExtras");
+  bpeDirectLabelsInput = qs("bpeDirectLabelsInput");
+  bpeDirectBeltsInput = qs("bpeDirectBeltsInput");
   const transportSelectModal = qs("transportSelectModal");
   const fileNameInput = qs("fileNameInput");
   const confirmExportBtn = qs("confirmExportBtn");
@@ -274,20 +305,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const unit = computeRowUnitPrice(row);
       const qty = Number(row.quantity || 0);
       const surcharge = computeBpeDirectSurcharge(row, qty);
-      tot += unit * qty + surcharge;
+      const extras = getBpeDirectRowExtras(row);
+      tot += unit * qty + surcharge + extras;
     }
     return roundToDecimals(tot, 2);
-  }
-
-  function computeBpeDirectExtrasTotal() {
-    const finishIsBpeDirect = finishSelect.value === BPE_DIRECT_FINISH;
-    if (!hasBpeDirectRows() || !finishIsBpeDirect) return 0;
-
-    const labels = parseInt(bpeDirectLabelsInput?.value ?? "0", 10);
-    const belts = parseInt(bpeDirectBeltsInput?.value ?? "0", 10);
-    const labelsTotal = !isNaN(labels) && labels > 0 ? labels * 0.63 : 0;
-    const beltsTotal = !isNaN(belts) && belts > 0 ? belts * 14.5 : 0;
-    return roundToDecimals(labelsTotal + beltsTotal, 2);
   }
 
   function hasBpeDirectRows(rows = currentRows) {
@@ -1005,6 +1026,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       row.size = sizeText;
 
+      if (isBpeDirectRow(row)) {
+        const { labels, belts, total } = computeBpeDirectExtrasFromInputs();
+        row.bpeDirectLabels = labels;
+        row.bpeDirectBelts = belts;
+        row.bpeDirectExtrasTotal = total;
+        resetBpeDirectExtrasInputs();
+      }
+
       currentRows.push(row);
       renderTable();
 
@@ -1203,7 +1232,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const colTotal = document.createElement("td");
       colTotal.classList.add("text-end");
       const surcharge = computeBpeDirectSurcharge(row, qtyValue);
-      const rowTotal = unitPrice * qtyValue + surcharge;
+      const extras = getBpeDirectRowExtras(row);
+      const rowTotal = unitPrice * qtyValue + surcharge + extras;
       colTotal.textContent = formatCurrency(rowTotal);
       grandTotal += rowTotal;
       tr.appendChild(colTotal);
@@ -1224,29 +1254,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.appendChild(tr);
     });
     if (currentRows.length) {
-      const bpeExtrasTotal = computeBpeDirectExtrasTotal();
-
-      if (bpeExtrasTotal > 0) {
-        const extrasRow = document.createElement("tr");
-        extrasRow.classList.add("table-warning", "fw-semibold");
-
-        const extrasLabelCell = document.createElement("td");
-        extrasLabelCell.colSpan = 8;
-        extrasLabelCell.classList.add("text-end");
-        extrasLabelCell.textContent = "Extra BPE Direct SF1";
-        extrasRow.appendChild(extrasLabelCell);
-
-        const extrasValueCell = document.createElement("td");
-        extrasValueCell.classList.add("text-end");
-        extrasValueCell.textContent = formatCurrency(bpeExtrasTotal);
-        extrasRow.appendChild(extrasValueCell);
-
-        const extrasEmptyCell = document.createElement("td");
-        extrasRow.appendChild(extrasEmptyCell);
-
-        tbody.appendChild(extrasRow);
-      }
-      const totalWithExtras = grandTotal + bpeExtrasTotal;
       const totalRow = document.createElement("tr");
       totalRow.classList.add("table-secondary", "fw-semibold");
 
@@ -1258,7 +1265,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const valueCell = document.createElement("td");
       valueCell.classList.add("text-end");
-      valueCell.textContent = formatCurrency(totalWithExtras);
+      valueCell.textContent = formatCurrency(grandTotal);
       totalRow.appendChild(valueCell);
 
       const emptyCell = document.createElement("td");
