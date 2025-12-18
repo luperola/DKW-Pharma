@@ -293,11 +293,16 @@ app.post("/api/export", async (req, res) => {
 
     const dataStartRow = 3;
     const dataLastRow = ws.rowCount;
-    const hasBpeDirectNote = rows.some((row) =>
-      typeof row?.description === "string"
-        ? /\(\*\*\)/.test(row.description)
-        : false
-    );
+    const hasBpeDirectNote = rows.some((row) => {
+      if (!row || typeof row.description !== "string") return false;
+
+      const description = row.description.trim();
+      const isBpeDirect =
+        row.itemType === BPE_DIRECT_ITEM_TYPE ||
+        row.finish === BPE_DIRECT_FINISH;
+
+      return isBpeDirect && description.endsWith("(**)");
+    });
     const totalBpeDirectLabels = bpeDirectLabelsTotals.reduce(
       (sum, val, idx) => (bpeDirectFlags[idx] ? sum + (Number(val) || 0) : sum),
       0
