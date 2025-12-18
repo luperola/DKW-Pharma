@@ -77,7 +77,7 @@ function needsBpeDirectQtyNote(row) {
 
   if (!metersPerCase) return false;
 
-  return qtyValue !== metersPerCase;
+  return qtyValue % metersPerCase !== 0;
 }
 
 function getRowDescription(row) {

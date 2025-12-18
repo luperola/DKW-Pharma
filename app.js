@@ -295,7 +295,7 @@ app.post("/api/export", async (req, res) => {
     const dataLastRow = ws.rowCount;
     const hasBpeDirectNote = rows.some((row) =>
       typeof row?.description === "string"
-        ? /\(\*\*\)\s*$/.test(row.description.trim())
+        ? /\(\*\*\)/.test(row.description)
         : false
     );
     const totalBpeDirectLabels = bpeDirectLabelsTotals.reduce(
@@ -432,10 +432,10 @@ app.post("/api/export", async (req, res) => {
     if (hasBpeDirectNote) {
       const noteRowIndex = dataLastRow + 1;
       const baseFont = { name: "Calibri", size: 9 };
-      const extrasNote =
-        totalBpeDirectLabels !== 0 || totalBpeDirectBelts !== 0
-          ? ` Si aggiungono inoltre n° ${totalBpeDirectLabels} etichette a €0,63 / cad. e n° ${totalBpeDirectBelts} belt a € 14,50 / cad.`
-          : "";
+      const hasExtras = totalBpeDirectLabels !== 0 || totalBpeDirectBelts !== 0;
+      const extrasNote = hasExtras
+        ? ` Si aggiungono inoltre n° ${totalBpeDirectLabels} etichette a €0,63 / cad. e n° ${totalBpeDirectBelts} belt a € 14,50 / cad.`
+        : "";
       const richText = [
         { text: "(**)", font: { ...baseFont, vertAlign: "superscript" } },
         {
