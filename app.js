@@ -39,6 +39,13 @@ function safeLoadCatalog() {
   }
 }
 
+function roundToDecimals(value, decimals = 2) {
+  return (
+    Math.round((Number(value || 0) + Number.EPSILON) * 10 ** decimals) /
+    10 ** decimals
+  );
+}
+
 function ensureCatalog() {
   if (!catalog || !catalog.tubes || !catalog.simple || !catalog.complex) {
     catalog = safeLoadCatalog();
@@ -250,15 +257,11 @@ app.post("/api/export", async (req, res) => {
       const base = Number(
         (isTube ? item.basePricePerM : item.basePricePerPc) || 0
       );
-      const peso = isTube
-        ? Math.round((Number(item.pesoKgM || 0) + Number.EPSILON) * 1000) / 1000
-        : null;
+      const peso = isTube ? roundToDecimals(item.pesoKgM || 0, 3) : null;
       const asKg = isTube ? Number(item.alloySurchargePerKg || 0) : null;
-      const asM = isTube
-        ? Math.round(((asKg || 0) * (peso || 0) + Number.EPSILON) * 1000) / 1000
-        : null;
+      const asM = isTube ? roundToDecimals((asKg || 0) * (peso || 0)) : null;
       const puBase = isTube ? base + (asM || 0) : base;
-      const pu = Math.round((puBase + Number.EPSILON) * 1000) / 1000;
+      const pu = roundToDecimals(puBase);
       const surcharge = computeBpeDirectSurcharge(item, qty);
       const extras = getBpeDirectExtras(item);
       const tot = pu * qty + surcharge + extras;
@@ -293,7 +296,7 @@ app.post("/api/export", async (req, res) => {
         // F..K
         const cell = ws.getCell(i, j);
         if (typeof cell.value === "number") {
-          const decimals = [7, 9, 10].includes(j) ? 3 : 2;
+          const decimals = j === 7 ? 3 : 2;
           cell.value =
             Math.round((cell.value + Number.EPSILON) * 10 ** decimals) /
             10 ** decimals;
@@ -353,7 +356,7 @@ app.post("/api/export", async (req, res) => {
         const iVal = Number(ws.getCell(i, 9).value || 0); // I
         jNew = fNew + iVal;
       }
-      jNew = Math.round((jNew + Number.EPSILON) * 1000) / 1000;
+      jNew = roundToDecimals(jNew);
       const cellJ = ws.getCell(i, 10);
       cellJ.value = jNew;
       cellJ.numFmt = "€ #,##0.00";

@@ -114,11 +114,11 @@ function computeRowUnitPrice(row) {
     ? Number(row.basePricePerM || 0)
     : Number(row.basePricePerPc || 0);
 
-  if (!isTubeItem) return base;
+  if (!isTubeItem) return roundToDecimals(base, 2);
 
   const peso = roundToDecimals(row.pesoKgM || 0, 3);
   const asKg = Number(row.alloySurchargePerKg || 0);
-  return base + peso * asKg;
+  return roundToDecimals(base + peso * asKg, 2);
 }
 
 function formatCurrency(value) {
