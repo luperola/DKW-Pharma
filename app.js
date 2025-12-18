@@ -301,7 +301,7 @@ app.post("/api/export", async (req, res) => {
         row.itemType === BPE_DIRECT_ITEM_TYPE ||
         row.finish === BPE_DIRECT_FINISH;
 
-      return isBpeDirect && description.endsWith("(**)");
+      return isBpeDirect && description.includes("(**)");
     });
     const totalBpeDirectLabels = bpeDirectLabelsTotals.reduce(
       (sum, val, idx) => (bpeDirectFlags[idx] ? sum + (Number(val) || 0) : sum),
