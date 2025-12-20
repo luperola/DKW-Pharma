@@ -125,6 +125,16 @@ function getOdLabelTexts(itemType) {
   return OD_LABELS[itemType] || OD_LABELS.default;
 }
 
+function buildOutletClampNdDescription(mmText, inchText, fallback = "") {
+  const mm = (mmText ?? "").toString().trim();
+  const inch = (inchText ?? "").toString().trim();
+  const parts = [];
+  if (mm) parts.push(`${mm} mm`);
+  if (inch) parts.push(`(${inch})`);
+  if (parts.length) return parts.join(" ");
+  return fallback;
+}
+
 let otherItems = [];
 const otherItemsById = new Map();
 const otherItemOptions = new Map(); // value -> { item, option }
@@ -1046,15 +1056,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let description = `${itemType} ${finish} ${sizeText}`;
       if (itemType === OUTLET_CLAMP_TEE_TYPE) {
-        const od1Mm = (catItem.od1Mm ?? "").toString().trim();
-        const od1Inch = (catItem.od1Inch ?? "").toString().trim();
-        const od1Pieces = [];
-        if (od1Mm) od1Pieces.push(`${od1Mm} mm`);
-        if (od1Inch) od1Pieces.push(`(${od1Inch})`);
-        const od1Description = od1Pieces.length
-          ? od1Pieces.join(" ")
-          : od1 || sizeText;
-        description = `${OUTLET_CLAMP_TEE_TYPE} ${finish} Tee ${od1Description}`;
+        const od1Description = buildOutletClampNdDescription(
+          catItem.od1Mm,
+          catItem.od1Inch,
+          od1 || sizeText
+        );
+        const od2Description = buildOutletClampNdDescription(
+          catItem.od2Mm,
+          catItem.od2Inch,
+          catItem.OD2 || od2 || ""
+        );
+        description = `${OUTLET_CLAMP_TEE_TYPE} ${finish} Tee ND ${od1Description}`;
+        if (od2Description) {
+          description += ` - Outlet (clamp) ND ${od2Description}`;
+        }
       } else if (isBpeDirectSelection) {
         description = `${itemType} ${sizeText}`;
       }

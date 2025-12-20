@@ -426,6 +426,8 @@ function loadOutletClampReducingTees(wb) {
 
     const od1MmText = formatNumber(mmOD1raw);
     const od1InchText = (inchOD1raw ?? "").toString().trim();
+    const od2MmText = formatNumber(mmOD2raw);
+    const od2InchText = (inchOD2raw ?? "").toString().trim();
 
     const codeSF1 = row[5];
     const priceSF1 = parseNum(row[6]);
@@ -439,6 +441,8 @@ function loadOutletClampReducingTees(wb) {
         pricePerPc: priceSF1,
         od1Mm: od1MmText,
         od1Inch: od1InchText,
+        od2Mm: od2MmText,
+        od2Inch: od2InchText,
       });
     }
 
@@ -454,6 +458,8 @@ function loadOutletClampReducingTees(wb) {
         pricePerPc: priceSF4,
         od1Mm: od1MmText,
         od1Inch: od1InchText,
+        od2Mm: od2MmText,
+        od2Inch: od2InchText,
       });
     }
   }
