@@ -11,6 +11,12 @@ const dataDir = path.join(__dirname, "data");
 const asmePath = path.join(dataDir, "ASME_BPE.xlsx");
 const teesReducersPath = path.join(dataDir, "Tees and reducers.xlsx");
 export const BPE_DIRECT_FINISH = "BPE Direct SF1";
+const OUTLET_CLAMP_TEE_TYPE =
+  "Short Outlet Hygienic Clamp - Joint Reducing Tee";
+const OUTLET_CLAMP_TEE_SHEETS = [
+  "Outlet Hyg. Clamp - Red. Tees",
+  "Outlet Hyg. Clamp - Red. Tees ",
+];
 
 // ---------- utils comuni ----------
 
@@ -385,6 +391,72 @@ const COMPLEX_SHEETS = [
   },
 ];
 
+function loadOutletClampReducingTees(wb) {
+  const sheetName = OUTLET_CLAMP_TEE_SHEETS.find((n) => wb.Sheets[n]);
+  if (!sheetName) return [];
+
+  const rows = xlsx.utils.sheet_to_json(wb.Sheets[sheetName], {
+    header: 1,
+    defval: null,
+  });
+  const headerIndex = rows.findIndex((row = []) =>
+    String(row?.[0] || "")
+      .toLowerCase()
+      .includes("inch od1")
+  );
+  if (headerIndex < 0) return [];
+
+  const out = [];
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const inchOD1raw = row[0];
+    const mmOD1raw = row[1];
+    const inchOD2raw = row[2];
+    const mmOD2raw = row[3];
+    if (mmOD1raw == null || mmOD2raw == null) continue;
+
+    let mm1 = parseNum(mmOD1raw);
+    let mm2 = parseNum(mmOD2raw);
+    let inch1 = inchOD1raw;
+    let inch2 = inchOD2raw;
+
+    if (mm1 && mm2 && mm1 > mm2) {
+      [mm1, mm2] = [mm2, mm1];
+      [inch1, inch2] = [inch2, inch1];
+    }
+
+    const OD1 = formatDimension(mm1 || mmOD1raw, inch1);
+    const OD2 = formatDimension(mm2 || mmOD2raw, inch2);
+    if (!OD1 || !OD2) continue;
+
+    const codeSF1 = row[5];
+    const priceSF1 = parseNum(row[6]);
+    if (priceSF1 > 0) {
+      out.push({
+        itemType: OUTLET_CLAMP_TEE_TYPE,
+        finish: "ASME BPE SF1",
+        OD1,
+        OD2,
+        code: codeSF1 != null ? String(codeSF1).trim() : "",
+        pricePerPc: priceSF1,
+      });
+    }
+
+    const codeSF4 = row[7];
+    const priceSF4 = parseNum(row[8]);
+    if (priceSF4 > 0) {
+      out.push({
+        itemType: OUTLET_CLAMP_TEE_TYPE,
+        finish: "ASME BPE SF4",
+        OD1,
+        OD2,
+        code: codeSF4 != null ? String(codeSF4).trim() : "",
+        pricePerPc: priceSF4,
+      });
+    }
+  }
+  return out;
+}
 function loadComplexCatalog() {
   try {
     if (!fs.existsSync(teesReducersPath)) return [];
@@ -441,6 +513,8 @@ function loadComplexCatalog() {
         }
       }
     }
+
+    out.push(...loadOutletClampReducingTees(wb));
 
     return out;
   } catch (err) {

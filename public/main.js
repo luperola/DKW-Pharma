@@ -6,6 +6,8 @@ let currentRows = [];
 // Item che usano solo ND
 const BPE_DIRECT_FINISH = "BPE Direct SF1";
 const BPE_DIRECT_ITEM_TYPE = "Tube BPE Direct SF1";
+const OUTLET_CLAMP_TEE_TYPE =
+  "Short Outlet Hygienic Clamp - Joint Reducing Tee";
 const ND_ITEMS = new Set([
   "Tubes",
   "Elbows 90°",
@@ -102,7 +104,26 @@ function renderDescriptionCell(cell, row) {
 }
 
 // Item che usano OD1 / OD2
-const OD_ITEMS = new Set(["Tees", "Conc. Reducers", "Ecc. Reducers"]);
+const OD_ITEMS = new Set([
+  "Tees",
+  "Conc. Reducers",
+  "Ecc. Reducers",
+  OUTLET_CLAMP_TEE_TYPE,
+]);
+const OD_LABELS = {
+  default: {
+    od1: "OD1 (minore, mm / inch)",
+    od2: "OD2 (maggiore, mm / inch)",
+  },
+  [OUTLET_CLAMP_TEE_TYPE]: {
+    od1: "OD1 (Tee ND, mm / inch)",
+    od2: "OD2 (Outlet clamp ND, mm / inch)",
+  },
+};
+
+function getOdLabelTexts(itemType) {
+  return OD_LABELS[itemType] || OD_LABELS.default;
+}
 
 let otherItems = [];
 const otherItemsById = new Map();
@@ -174,6 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const ndSelect = qs("ndSelect");
   const od1Group = qs("od1Group");
   const od2Group = qs("od2Group");
+  const od1Label = document.querySelector('label[for="od1Select"]');
+  const od2Label = document.querySelector('label[for="od2Select"]');
   const od1Select = qs("od1Select");
   const od2Select = qs("od2Select");
 
@@ -210,6 +233,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const transportSelectModal = qs("transportSelectModal");
   const fileNameInput = qs("fileNameInput");
   const confirmExportBtn = qs("confirmExportBtn");
+
+  function updateOdLabels(itemType) {
+    const labels = getOdLabelTexts(itemType);
+    if (od1Label) od1Label.textContent = labels.od1;
+    if (od2Label) od2Label.textContent = labels.od2;
+  }
 
   function getDefaultFileName() {
     const today = new Date();
@@ -809,6 +838,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cambia UI in base all'item scelto (Q.ty unità, Alloy abilitato solo Tubes, ND/OD)
   itemTypeSelect.addEventListener("change", () => {
     const itemType = itemTypeSelect.value;
+    updateOdLabels(itemType);
     const isOtherItem = itemType === "Other Items";
     const isCustomOtherItem = isCustomOtherItemType(itemType);
     if (isOtherItem) {
@@ -1314,5 +1344,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   addOtherItemsBtn.addEventListener("click", addSelectedOtherItemsToTable);
+  updateOdLabels(itemTypeSelect.value);
   loadOtherItemsFromServer();
 });

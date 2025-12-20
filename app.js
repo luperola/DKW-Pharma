@@ -124,7 +124,7 @@ app.get("/api/catalog/simple", (req, res) => {
   }
 });
 
-// Fittings complessi (Tees, Conc. Reducers, Ecc. Reducers) – OD1/OD2
+// Fittings complessi (Tees, Conc. Reducers, Ecc. Reducers, Outlet Hyg. Clamp Tee) – OD1/OD2
 app.get("/api/catalog/complex", (req, res) => {
   try {
     ensureCatalog();
