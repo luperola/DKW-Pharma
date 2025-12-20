@@ -1041,8 +1041,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const catItem = items[0]; // se più di uno, prendo il primo
 
+      const baseRowContext = { itemType, finish };
+      const isBpeDirectSelection = isBpeDirectRow(baseRowContext);
+
       let description = `${itemType} ${finish} ${sizeText}`;
-      if (isBpeDirectRow({ itemType, finish })) {
+      if (itemType === OUTLET_CLAMP_TEE_TYPE) {
+        const od1Mm = (catItem.od1Mm ?? "").toString().trim();
+        const od1Inch = (catItem.od1Inch ?? "").toString().trim();
+        const od1Pieces = [];
+        if (od1Mm) od1Pieces.push(`${od1Mm} mm`);
+        if (od1Inch) od1Pieces.push(`(${od1Inch})`);
+        const od1Description = od1Pieces.length
+          ? od1Pieces.join(" ")
+          : od1 || sizeText;
+        description = `${OUTLET_CLAMP_TEE_TYPE} ${finish} Tee ${od1Description}`;
+      } else if (isBpeDirectSelection) {
         description = `${itemType} ${sizeText}`;
       }
       if (itemType === "Clamps") {

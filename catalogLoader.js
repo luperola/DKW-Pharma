@@ -415,19 +415,17 @@ function loadOutletClampReducingTees(wb) {
     const mmOD2raw = row[3];
     if (mmOD1raw == null || mmOD2raw == null) continue;
 
-    let mm1 = parseNum(mmOD1raw);
-    let mm2 = parseNum(mmOD2raw);
-    let inch1 = inchOD1raw;
-    let inch2 = inchOD2raw;
-
-    if (mm1 && mm2 && mm1 > mm2) {
-      [mm1, mm2] = [mm2, mm1];
-      [inch1, inch2] = [inch2, inch1];
-    }
+    const mm1 = parseNum(mmOD1raw);
+    const mm2 = parseNum(mmOD2raw);
+    const inch1 = inchOD1raw;
+    const inch2 = inchOD2raw;
 
     const OD1 = formatDimension(mm1 || mmOD1raw, inch1);
     const OD2 = formatDimension(mm2 || mmOD2raw, inch2);
     if (!OD1 || !OD2) continue;
+
+    const od1MmText = formatNumber(mmOD1raw);
+    const od1InchText = (inchOD1raw ?? "").toString().trim();
 
     const codeSF1 = row[5];
     const priceSF1 = parseNum(row[6]);
@@ -439,6 +437,8 @@ function loadOutletClampReducingTees(wb) {
         OD2,
         code: codeSF1 != null ? String(codeSF1).trim() : "",
         pricePerPc: priceSF1,
+        od1Mm: od1MmText,
+        od1Inch: od1InchText,
       });
     }
 
@@ -452,6 +452,8 @@ function loadOutletClampReducingTees(wb) {
         OD2,
         code: codeSF4 != null ? String(codeSF4).trim() : "",
         pricePerPc: priceSF4,
+        od1Mm: od1MmText,
+        od1Inch: od1InchText,
       });
     }
   }
