@@ -121,6 +121,14 @@ const OD_LABELS = {
   },
 };
 
+const OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS = [
+  { od1Mm: 9.53, od2Mm: 6.35 },
+  { od1Mm: 12.7, od2Mm: 6.35 },
+  { od1Mm: 12.7, od2Mm: 9.53 },
+  { od1Mm: 19.05, od2Mm: 6.35 },
+  { od1Mm: 19.05, od2Mm: 9.53 },
+];
+
 function getOdLabelTexts(itemType) {
   return OD_LABELS[itemType] || OD_LABELS.default;
 }
@@ -133,6 +141,20 @@ function buildOutletClampNdDescription(mmText, inchText, fallback = "") {
   if (inch) parts.push(`(${inch})`);
   if (parts.length) return parts.join(" ");
   return fallback;
+}
+function isRequestOnlyOutletClampCombination(od1MmText, od2MmText) {
+  const parseMm = (val) => {
+    const parsed = parseFloat(String(val ?? "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const od1 = parseMm(od1MmText);
+  const od2 = parseMm(od2MmText);
+  if (od1 == null || od2 == null) return false;
+
+  return OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS.some(
+    (combo) =>
+      Math.abs(combo.od1Mm - od1) < 1e-6 && Math.abs(combo.od2Mm - od2) < 1e-6
+  );
 }
 
 let otherItems = [];
@@ -1053,6 +1075,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const baseRowContext = { itemType, finish };
       const isBpeDirectSelection = isBpeDirectRow(baseRowContext);
+
+      if (
+        itemType === OUTLET_CLAMP_TEE_TYPE &&
+        isRequestOnlyOutletClampCombination(catItem.od1Mm, catItem.od2Mm)
+      ) {
+        const od1Description = buildOutletClampNdDescription(
+          catItem.od1Mm,
+          catItem.od1Inch,
+          od1 || sizeText
+        );
+        const od2Description = buildOutletClampNdDescription(
+          catItem.od2Mm,
+          catItem.od2Inch,
+          catItem.OD2 || od2 || ""
+        );
+        alert(
+          `la quotazione di OD1 ND ${od1Description} x OD ND ${od2Description} è disponibile solo su richiesta a Dockweiler`
+        );
+      }
 
       let description = `${itemType} ${finish} ${sizeText}`;
       if (itemType === OUTLET_CLAMP_TEE_TYPE) {
