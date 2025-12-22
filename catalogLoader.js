@@ -67,6 +67,12 @@ function formatDimension(mm, inch) {
   return inchStr;
 }
 
+function isOnRequestValue(value) {
+  if (value == null) return false;
+  if (typeof value !== "string") return false;
+  return value.toLowerCase().includes("request");
+}
+
 // Finiture disponibili
 export const FINISHES = [
   {
@@ -447,8 +453,10 @@ function loadOutletClampReducingTees(wb) {
     const od2InchText = (inchOD2raw ?? "").toString().trim();
 
     const codeSF1 = row[5];
-    const priceSF1 = parseNum(row[6]);
-    if (priceSF1 > 0) {
+    const priceSF1raw = row[6];
+    const priceSF1 = parseNum(priceSF1raw);
+    const sf1RequestOnly = isOnRequestValue(priceSF1raw);
+    if (priceSF1 > 0 || sf1RequestOnly) {
       out.push({
         itemType: OUTLET_CLAMP_TEE_TYPE,
         finish: "ASME BPE SF1",
@@ -460,12 +468,15 @@ function loadOutletClampReducingTees(wb) {
         od1Inch: od1InchText,
         od2Mm: od2MmText,
         od2Inch: od2InchText,
+        requestOnly: sf1RequestOnly,
       });
     }
 
     const codeSF4 = row[7];
-    const priceSF4 = parseNum(row[8]);
-    if (priceSF4 > 0) {
+    const priceSF4raw = row[8];
+    const priceSF4 = parseNum(priceSF4raw);
+    const sf4RequestOnly = isOnRequestValue(priceSF4raw);
+    if (priceSF4 > 0 || sf4RequestOnly) {
       out.push({
         itemType: OUTLET_CLAMP_TEE_TYPE,
         finish: "ASME BPE SF4",
@@ -477,6 +488,7 @@ function loadOutletClampReducingTees(wb) {
         od1Inch: od1InchText,
         od2Mm: od2MmText,
         od2Inch: od2InchText,
+        requestOnly: sf4RequestOnly,
       });
     }
   }

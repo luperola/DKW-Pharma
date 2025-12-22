@@ -123,14 +123,6 @@ const OD_LABELS = {
   },
 };
 
-const OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS = [
-  { od1Mm: 9.53, od2Mm: 6.35 },
-  { od1Mm: 12.7, od2Mm: 6.35 },
-  { od1Mm: 12.7, od2Mm: 9.53 },
-  { od1Mm: 19.05, od2Mm: 6.35 },
-  { od1Mm: 19.05, od2Mm: 9.53 },
-];
-
 function getOdLabelTexts(itemType) {
   return OD_LABELS[itemType] || OD_LABELS.default;
 }
@@ -143,28 +135,6 @@ function buildOutletClampNdDescription(mmText, inchText, fallback = "") {
   if (inch) parts.push(`(${inch})`);
   if (parts.length) return parts.join(" ");
   return fallback;
-}
-
-function normalizeOutletClampMmValue(value) {
-  const parsed = parseFloat(String(value ?? "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function formatOutletClampMmValue(value) {
-  const normalized = normalizeOutletClampMmValue(value);
-  if (normalized == null) return String(value ?? "").trim();
-  return normalized.toFixed(2);
-}
-
-function isRequestOnlyOutletClampCombination(od1MmText, od2MmText) {
-  const od1 = normalizeOutletClampMmValue(od1MmText);
-  const od2 = normalizeOutletClampMmValue(od2MmText);
-  if (od1 == null || od2 == null) return false;
-
-  return OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS.some(
-    (combo) =>
-      Math.abs(combo.od1Mm - od1) < 1e-6 && Math.abs(combo.od2Mm - od2) < 1e-6
-  );
 }
 
 let otherItems = [];
@@ -836,17 +806,6 @@ document.addEventListener("DOMContentLoaded", () => {
           currentComplexMap[OD1].add(OD2);
         }
 
-        if (itemType === OUTLET_CLAMP_TEE_TYPE) {
-          OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS.forEach(({ od1Mm, od2Mm }) => {
-            const od1Label = formatOutletClampMmValue(od1Mm);
-            const od2Label = formatOutletClampMmValue(od2Mm);
-            if (!currentComplexMap[od1Label]) {
-              currentComplexMap[od1Label] = new Set();
-            }
-            currentComplexMap[od1Label].add(od2Label);
-          });
-        }
-
         const od1Values = Object.keys(currentComplexMap).sort((a, b) => {
           const na = parseFloat(a.replace(",", "."));
           const nb = parseFloat(b.replace(",", "."));
@@ -1050,16 +1009,6 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Seleziona OD1 e OD2.");
         return;
       }
-      if (
-        itemType === OUTLET_CLAMP_TEE_TYPE &&
-        isRequestOnlyOutletClampCombination(od1, od2)
-      ) {
-        alert("Quotazione su richiesta");
-        ndSelect.value = prevND;
-        od1Select.value = prevOD1;
-        od2Select.value = prevOD2;
-        return;
-      }
       endpoint = "/api/catalog/complex";
       params.set("type", itemType);
       params.set("finish", finish);
@@ -1107,14 +1056,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const baseRowContext = { itemType, finish };
       const isBpeDirectSelection = isBpeDirectRow(baseRowContext);
 
-      const isRequestOnlyOutlet =
+      const isOutletClampRequestOnly =
         itemType === OUTLET_CLAMP_TEE_TYPE &&
-        isRequestOnlyOutletClampCombination(
-          catItem?.od1Mm ?? od1,
-          catItem?.od2Mm ?? od2
+        (catItem?.requestOnly || Number(catItem?.pricePerPc || 0) <= 0);
+      if (isOutletClampRequestOnly) {
+        const codeText = catItem?.code || "non disponibile";
+        alert(
+          `Codice ${codeText} - Quotazione del codice ${codeText} su richiesta`
         );
-      if (isRequestOnlyOutlet) {
-        alert("Quotazione su richiesta");
         ndSelect.value = prevND;
         od1Select.value = prevOD1;
         od2Select.value = prevOD2;
