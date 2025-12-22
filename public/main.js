@@ -8,11 +8,13 @@ const BPE_DIRECT_FINISH = "BPE Direct SF1";
 const BPE_DIRECT_ITEM_TYPE = "Tube BPE Direct SF1";
 const OUTLET_CLAMP_TEE_TYPE =
   "Short Outlet Hygienic Clamp - Joint Reducing Tee";
+const SOLID_END_CAP_ITEM_TYPE = "Tappi - Solid end cap (Hyg. Clamp)";
 const ND_ITEMS = new Set([
   "Tubes",
   "Elbows 90°",
   "Elbows 45°",
   "End Caps",
+  SOLID_END_CAP_ITEM_TYPE,
   "Clamps",
   "Ferrule A (Long)",
   "Ferrule B (Medium)",
@@ -1121,6 +1123,13 @@ document.addEventListener("DOMContentLoaded", () => {
             : "";
         if (flangeSize) {
           description += ` - Flange size mm: ${flangeSize}`;
+        }
+      }
+      if (itemType === SOLID_END_CAP_ITEM_TYPE) {
+        const clampDim =
+          catItem.clampDimMm != null ? String(catItem.clampDimMm).trim() : "";
+        if (clampDim) {
+          description += ` - dim clamp = ${clampDim} mm`;
         }
       }
       if (

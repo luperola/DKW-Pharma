@@ -13,6 +13,7 @@ const teesReducersPath = path.join(dataDir, "Tees and reducers.xlsx");
 export const BPE_DIRECT_FINISH = "BPE Direct SF1";
 const OUTLET_CLAMP_TEE_TYPE =
   "Short Outlet Hygienic Clamp - Joint Reducing Tee";
+const SOLID_END_CAP_ITEM_TYPE = "Tappi - Solid end cap (Hyg. Clamp)";
 const OUTLET_CLAMP_TEE_SHEETS = [
   "Outlet Hyg. Clamp - Red. Tees",
   "Outlet Hyg. Clamp - Red. Tees ",
@@ -232,6 +233,10 @@ const SIMPLE_SHEETS = [
     sheetNames: ["End Caps", "Caps", "EndCap"],
   },
   {
+    itemType: SOLID_END_CAP_ITEM_TYPE,
+    sheetNames: ["Tappi"],
+  },
+  {
     itemType: "Ferrule A (Long)",
     sheetNames: ["Ferrule A (Long)", "Ferrule A Long", "Ferrule A"],
   },
@@ -319,6 +324,14 @@ function loadSimpleFittingsCatalog() {
             : null;
         const flangeSizeMm =
           def.itemType === "Clamps" ? parseNum(flangeSizeRaw) : null;
+        const clampDimRaw =
+          def.itemType === SOLID_END_CAP_ITEM_TYPE
+            ? pick(r, ["Dim clamp", "Dim clamp "])
+            : null;
+        const clampDimMm =
+          def.itemType === SOLID_END_CAP_ITEM_TYPE
+            ? parseNum(clampDimRaw)
+            : null;
 
         for (const finish of FINISHES) {
           let priceRaw = null;
@@ -362,6 +375,10 @@ function loadSimpleFittingsCatalog() {
             lengthMm: isFerrule && lengthMm ? lengthMm : null,
             flangeSizeMm:
               def.itemType === "Clamps" && flangeSizeMm ? flangeSizeMm : null,
+            clampDimMm:
+              def.itemType === SOLID_END_CAP_ITEM_TYPE && clampDimMm
+                ? clampDimMm
+                : null,
           });
         }
       }
