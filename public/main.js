@@ -144,13 +144,21 @@ function buildOutletClampNdDescription(mmText, inchText, fallback = "") {
   if (parts.length) return parts.join(" ");
   return fallback;
 }
+
+function normalizeOutletClampMmValue(value) {
+  const parsed = parseFloat(String(value ?? "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatOutletClampMmValue(value) {
+  const normalized = normalizeOutletClampMmValue(value);
+  if (normalized == null) return String(value ?? "").trim();
+  return normalized.toFixed(2);
+}
+
 function isRequestOnlyOutletClampCombination(od1MmText, od2MmText) {
-  const parseMm = (val) => {
-    const parsed = parseFloat(String(val ?? "").replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-  const od1 = parseMm(od1MmText);
-  const od2 = parseMm(od2MmText);
+  const od1 = normalizeOutletClampMmValue(od1MmText);
+  const od2 = normalizeOutletClampMmValue(od2MmText);
   if (od1 == null || od2 == null) return false;
 
   return OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS.some(
@@ -828,6 +836,17 @@ document.addEventListener("DOMContentLoaded", () => {
           currentComplexMap[OD1].add(OD2);
         }
 
+        if (itemType === OUTLET_CLAMP_TEE_TYPE) {
+          OUTLET_CLAMP_REQUEST_ONLY_COMBINATIONS.forEach(({ od1Mm, od2Mm }) => {
+            const od1Label = formatOutletClampMmValue(od1Mm);
+            const od2Label = formatOutletClampMmValue(od2Mm);
+            if (!currentComplexMap[od1Label]) {
+              currentComplexMap[od1Label] = new Set();
+            }
+            currentComplexMap[od1Label].add(od2Label);
+          });
+        }
+
         const od1Values = Object.keys(currentComplexMap).sort((a, b) => {
           const na = parseFloat(a.replace(",", "."));
           const nb = parseFloat(b.replace(",", "."));
@@ -1031,6 +1050,16 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Seleziona OD1 e OD2.");
         return;
       }
+      if (
+        itemType === OUTLET_CLAMP_TEE_TYPE &&
+        isRequestOnlyOutletClampCombination(od1, od2)
+      ) {
+        alert("Quotazione su richiesta");
+        ndSelect.value = prevND;
+        od1Select.value = prevOD1;
+        od2Select.value = prevOD2;
+        return;
+      }
       endpoint = "/api/catalog/complex";
       params.set("type", itemType);
       params.set("finish", finish);
@@ -1078,23 +1107,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const baseRowContext = { itemType, finish };
       const isBpeDirectSelection = isBpeDirectRow(baseRowContext);
 
-      if (
+      const isRequestOnlyOutlet =
         itemType === OUTLET_CLAMP_TEE_TYPE &&
-        isRequestOnlyOutletClampCombination(catItem.od1Mm, catItem.od2Mm)
-      ) {
-        const od1Description = buildOutletClampNdDescription(
-          catItem.od1Mm,
-          catItem.od1Inch,
-          od1 || sizeText
+        isRequestOnlyOutletClampCombination(
+          catItem?.od1Mm ?? od1,
+          catItem?.od2Mm ?? od2
         );
-        const od2Description = buildOutletClampNdDescription(
-          catItem.od2Mm,
-          catItem.od2Inch,
-          catItem.OD2 || od2 || ""
-        );
-        alert(
-          `la quotazione di OD1 ND ${od1Description} x OD ND ${od2Description} è disponibile solo su richiesta a Dockweiler`
-        );
+      if (isRequestOnlyOutlet) {
+        alert("Quotazione su richiesta");
+        ndSelect.value = prevND;
+        od1Select.value = prevOD1;
+        od2Select.value = prevOD2;
+        return;
       }
 
       let description = `${itemType} ${finish} ${sizeText}`;
